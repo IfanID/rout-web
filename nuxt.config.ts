@@ -4,6 +4,25 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  // Sistem warna. Satu-satunya sumber warna di proyek ini.
+  css: ['~/assets/css/main.css'],
+
+  vite: {
+    optimizeDeps: {
+      // Pemindaian dependensi otomatis dimatikan.
+      //
+      // Alasannya: @nuxtjs/i18n mengimpor NuxtLink lewat alias virtual
+      // "#components". Alias itu hanya dibuat setelah Nuxt selesai
+      // membangun diri sendiri, jadi pemindai Vite tidak bisa
+      // me-resolve-nya dan build gagal di tahap dep-scan.
+      //
+      // Build sebenarnya tetap berhasil — yang gagal hanya pra-bundling.
+      // Matikan pindai karena Vite 8 memakai rolldown yang sudah
+      // menangani ESM secara native, jadi pra-bundling tidak dibutuhkan.
+      noDiscovery: true
+    }
+  },
+
   runtimeConfig: {
     public: {
       // Domain situs. Tidak di hardcode di sini, hanya diisi lewat .env:

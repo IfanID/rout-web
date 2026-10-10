@@ -15,7 +15,10 @@ const head = useLocaleHead({
       </template>
     </Head>
     <Body>
+      <NavigationHeader />
       <NuxtPage />
+      <NavigationBottomNav />
+      <NotificationToaster />
     </Body>
   </Html>
 </template>

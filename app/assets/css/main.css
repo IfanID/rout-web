@@ -1,0 +1,348 @@
+/* ============================================================
+   Respawn Outbase — sistem warna
+   Tema gelap saja. Cyan murni #00FFFF sebagai warna aksen.
+
+   Tiga lapisan:
+     1. Primitif  — ramp mentah. Jangan dipakai langsung di komponen.
+     2. Semantik  — yang dipakai semua komponen.
+     3. Komponen  — reservasi, isi kalau ada kebutuhan nyata.
+
+   Aturan utama: jangan tulis hex, rgb, atau nama warna di
+   komponen. Satu-satunya sumber warna adalah lapisan 2.
+   ============================================================ */
+
+/* ---------- Lapisan 1: Primitif ---------- */
+
+:root {
+  /* Ramp cyan. #00FFFF berada di 400, bukan 500.
+     Alasannya, cyan murni terlalu terang untuk dipakai sebagai
+     warna tombol bertulisan — teks putih di atasnya kontrasnya
+     hanya 1,1:1. Di 400, cyan murni jadi "kilau" untuk hal kecil,
+     sementara tombol memakai 500 yang lebih tenang. */
+  --cyan-50: #ecfeff;
+  --cyan-100: #cffafe;
+  --cyan-200: #a5f3fc;
+  --cyan-300: #67e8f9;
+  --cyan-400: #00ffff;
+  --cyan-500: #00e5e5;
+  --cyan-600: #00bfbf;
+  --cyan-700: #0891a0;
+  --cyan-800: #155e75;
+  --cyan-900: #164e63;
+  --cyan-950: #083344;
+
+  /* Ramp netral. Hitam pekat, tanpa sembunyi ungu.
+     Semua nilai R = G = B supaya benar-benar netral. */
+  --netral-950: #000000;
+  --netral-900: #0a0a0a;
+  --netral-850: #121212;
+  --netral-800: #1a1a1a;
+  --netral-700: #262626;
+  --netral-600: #3d3d3d;
+  --netral-500: #808080;
+  --netral-400: #a3a3a3;
+  --netral-300: #d4d4d4;
+  --netral-100: #f4f4f4;
+  --netral-50: #fafafa;
+
+  /* Warna status. Dipilih terang supaya terbaca di atas gelap. */
+  --sukses-300: #86efac;
+  --sukses-400: #4ade80;
+  --peringatan-300: #fcd34d;
+  --peringatan-400: #fbbf24;
+  --galat-300: #fca5a5;
+  --galat-400: #f87171;
+  --info-300: #93c5fd;
+  --info-400: #60a5fa;
+}
+
+/* ---------- Lapisan 2: Semantik ---------- */
+
+:root {
+  /* Latar — lima tingkat kedalaman.
+     Dipakai sebagai panduan elevasi: makin tinggi, makin "naik". */
+  --latar-dasar: var(--netral-950);
+  --latar-naik-1: var(--netral-900);
+  --latar-naik-2: var(--netral-850);
+  --latar-naik-3: var(--netral-800);
+  --latar-sorot: rgb(0 255 255 / 10%);
+
+  /* Teks — kontras diukur terhadap --latar-dasar (#000000). */
+  --teks-utama: var(--netral-100);       /* 19,1:1 */
+  --teks-sekunder: var(--netral-400);    /*  8,3:1 */
+  --teks-lembut: var(--netral-500);      /*  5,3:1 */
+  --teks-aksen: var(--cyan-300);         /* 14,5:1 */
+  --teks-aksen-murni: var(--cyan-400);   /* 16,8:1 */
+  --teks-aksen-tekan: #062b33;           /*  9,5:1 di atas --aksen-utama */
+
+  /* Garis — tiga tingkat. */
+  --garis-halus: var(--netral-800);
+  --garis-sedang: var(--netral-700);
+  --garis-aktif: var(--cyan-600);
+
+  /* Aksen — tiap peran punya warna berbeda. */
+  --aksen-utama: var(--cyan-500);
+  --aksen-indikator: var(--cyan-400);
+  --aksen-glow: rgb(0 255 255 / 20%);
+  --aksen-latar: rgb(0 255 255 / 6%);
+
+  /* Status — diturunkan ke lapisan semantik. */
+  --sukses: var(--sukses-400);
+  --peringatan: var(--peringatan-400);
+  --galat: var(--galat-400);
+  --info: var(--info-400);
+  --sukses-latar: rgb(74 222 128 / 12%);
+  --peringatan-latar: rgb(251 191 36 / 12%);
+  --galat-latar: rgb(248 113 113 / 12%);
+  --info-latar: rgb(96 165 250 / 12%);
+
+  /* Fokus — untuk aksesibilitas keyboard. */
+  --fokus-cincin: var(--cyan-400);
+  --fokus-cincin-luar: var(--latar-dasar);
+
+  /* Radius, bayangan, transisi — bukan warna, tapi milik dasar. */
+  --radius-kecil: 4px;
+  --radius-sedang: 8px;
+  --radius-besar: 12px;
+  --transisi: 150ms ease;
+}
+
+/* ---------- Lapisan 3: Komponen ---------- */
+
+/* Kosong dengan sengaja. Tambahkan token di sini hanya kalau
+   sebuah komponen benar-benar butuh nada yang miliknya sendiri.
+   Jangan diisi untuk komponen yang belum ada. */
+
+/* ---------- Dasar halaman ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--latar-dasar);
+  color: var(--teks-utama);
+  font-family: system-ui, -apple-system, "Segoe UI", roboto, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0;
+}
+
+a {
+  color: var(--teks-aksen);
+  text-decoration: none;
+  transition: color var(--transisi);
+}
+
+a:hover {
+  color: var(--teks-aksen-murni);
+}
+
+:focus-visible {
+  outline: 2px solid var(--fokus-cincin);
+  outline-offset: 2px;
+}
+
+/* ---------- Konten ---------- */
+
+.konten {
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.konten__judul {
+  font-size: 1.875rem;
+  letter-spacing: -0.02em;
+}
+
+.konten__sub {
+  color: var(--teks-sekunder);
+  margin-top: 0.5rem;
+}
+
+.bagian {
+  margin-top: 3rem;
+}
+
+.bagian__judul {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teks-lembut);
+  margin-bottom: 1rem;
+}
+
+/* ---------- Kartu ---------- */
+
+.kartu {
+  background: var(--latar-naik-2);
+  border: 1px solid var(--garis-halus);
+  border-radius: var(--radius-besar);
+  padding: 1.25rem;
+}
+
+.kartu:hover {
+  border-color: var(--garis-sedang);
+}
+
+/* ---------- Tombol ---------- */
+
+.tombol {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sedang);
+  padding: 0.625rem 1rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transisi), border-color var(--transisi), color var(--transisi);
+}
+
+.tombol--utama {
+  background: var(--aksen-utama);
+  color: var(--teks-aksen-tekan);
+}
+
+.tombol--utama:hover {
+  background: var(--cyan-400);
+}
+
+.tombol--sekunder {
+  background: transparent;
+  border-color: var(--garis-sedang);
+  color: var(--teks-utama);
+}
+
+.tombol--sekunder:hover {
+  border-color: var(--garis-aktif);
+  color: var(--teks-aksen);
+}
+
+.tombol:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- Input ---------- */
+
+.input {
+  width: 100%;
+  background: var(--latar-naik-1);
+  border: 1px solid var(--garis-sedang);
+  border-radius: var(--radius-sedang);
+  padding: 0.625rem 0.875rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--teks-utama);
+  transition: border-color var(--transisi), box-shadow var(--transisi);
+}
+
+.input::placeholder {
+  color: var(--teks-lembut);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--garis-aktif);
+  box-shadow: 0 0 0 3px var(--aksen-glow);
+}
+
+/* ---------- Badge ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  padding: 0.1875rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--aksen-latar);
+  color: var(--teks-aksen);
+}
+
+.badge--sukses { background: var(--sukses-latar); color: var(--sukses); }
+.badge--peringatan { background: var(--peringatan-latar); color: var(--peringatan); }
+.badge--galat { background: var(--galat-latar); color: var(--galat); }
+.badge--info { background: var(--info-latar); color: var(--info); }
+
+/* ---------- Tabel ---------- */
+
+.tabel {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.tabel th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  color: var(--teks-lembut);
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--garis-sedang);
+}
+
+.tabel td {
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid var(--garis-halus);
+}
+
+.tabel tbody tr {
+  transition: background var(--transisi);
+}
+
+.tabel tbody tr:hover {
+  background: var(--latar-sorot);
+}
+
+/* ---------- Grid demo ---------- */
+
+.grid-demo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.grid-demo > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 4.5rem;
+  border-radius: var(--radius-sedang);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ganda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* ---------- Lencana ramp ---------- */
+
+.lencana {
+  font-family: ui-monospace, "SF Mono", menlo, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}

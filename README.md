@@ -69,9 +69,18 @@ rout-web/
 ├── nuxt.config.ts
 ├── app/
 │   ├── app.vue
+│   ├── assets/
+│   │   └── css/
+│   │       └── main.css       Sistem warna
 │   ├── components/
-│   │   └── navigation/
-│   │       └── RoutLocaleSwitcher.vue
+│   │   ├── navigation/
+│   │   │   ├── Header.vue
+│   │   │   ├── BottomNav.vue
+│   │   │   └── LocaleSwitcher.vue
+│   │   └── notification/
+│   │       └── Toaster.vue
+│   ├── composables/
+│   │   └── useNotifications.ts
 │   ├── i18n/
 │   │   └── locales/          en.json, id.json, ko.json
 │   └── pages/
