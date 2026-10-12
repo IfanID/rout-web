@@ -152,13 +152,19 @@ rout-web/
 │   │       └── Toaster.vue
 │   ├── composables/
 │   │   ├── useNotifications.ts
-│   │   └── useMiddleSlot.ts      Daftar pintasan slot tengah navbar
+│   │   └── useMiddleSlot.ts      Pintasan slot tengah navbar + route-nya
 │   ├── i18n/
 │   │   └── locales/          en.json, id.json, ko.json (hero, nav, pengaturan, slot)
 │   └── pages/
-│       ├── (home)/index.vue  Beranda
+│       ├── (home)/index.vue    Beranda
+│       ├── (profile)/
+│       │   └── profile.vue     → /profile
+│       ├── (running-man)/
+│       │   └── running-man.vue → /running-man
+│       ├── (search)/
+│       │   └── search.vue      → /search
 │       └── (settings)/
-│           └── settings.vue   → /settings
+│           └── settings.vue    → /settings
 └── public/
     ├── favicon.ico
     └── robots.txt
@@ -170,7 +176,7 @@ File `.env` ada di `.gitignore`, jadi tidak ikut ter-commit. Clone repo di mesin
 
 Header dan BottomNav sudah dipasang di `app.vue`, jadi keduanya dipakai semua halaman. Switcher bahasa sudah menjadi komponen sendiri dan tidak lagi muncul di beranda, tetapi belum dipasang di mana pun — ia masih kerangka 16 baris tanpa style, dan menunggu tempat yang benar-benar butuh pengalih bahasa.
 
-Halaman yang ada baru `/` dan `/settings`. Item navbar Katalog, Profil, dan slot tengah sengaja dirender sebagai tombol mati, bukan link, karena halamannya belum ada.
+Halaman yang ada baru `/`, `/profile`, `/running-man`, `/search`, dan `/settings`. Status tiap item navbar ditentukan oleh kolom `ke`: item dengan `ke` terisi dirender sebagai link, yang kosong sebagai tombol mati. Empat halaman di navbar sudah punya, jadi satu-satunya item yang masih bisa mati adalah slot tengah — dan hanya ketika pintasan yang dipilih belum punya halaman.
 
 ## Organisasi folder
 
@@ -186,6 +192,26 @@ Folder baru lahir dari **fungsi yang berbeda**, bukan dari bertambahnya jumlah f
 
 **Nama folder** menjelaskan batas fungsinya, bukan warnanya atau isinya. `navigation/slot/` berarti komponen untuk fitur slot tengah, bukan "slot yang warnanya gelap". Batas nama yang jelas ada di [Konvensi komponen](#konvensi-komponen); `common/`, `shared/`, `misc/`, dan `utils/` dihindari karena isinya tidak pernah punya batas yang disepakati.
 
+### Penamaan
+
+Folder dan file `.vue` ditulis dalam **bahasa Inggris**.
+
+| Yang | Bahasa | Contoh |
+|---|---|---|
+| Nama folder | Inggris | `navigation/`, `slot/`, `notification/` |
+| Nama file `.vue` | Inggris | `BottomNav.vue`, `SlotSelect.vue`, `settings.vue` |
+| Nama route | Inggris | `/settings`, `/search`, `/running-man` |
+| Kunci terjemahan | Indonesia | `nav.cari`, `pengaturan.judul`, `slot.running_man` |
+| Isi kunci | Sesuai locale | `"Cari"`, `"Search"`, `"검색"` |
+
+Alasannya mundane: nama file muncul di setiap baris import dan di setiap pesan error, jadi yang membacanya bukan cuma orang yang sudah terbiasa dengan Bahasa Indonesia.
+
+Kunci terjemahan berbeda. Kuncinya tidak pernah muncul di kode — hanya di dalam file locale dan di template lewat `t()`. Tidak ada yang perlu membacanya saat menelusuri bug, jadi bahasa yang paling ringkas untuk dibaca dipakai di sana.
+
+Nama file memakai isi komponennya saja, karena nama folder sudah menyediakan konteksnya. `navigation/RoutHeader.vue` menjadi `navigation/Header.vue` — prefix `Rout` tidak ditulis di depan nama file, bukan di nama variabel, bukan di class CSS. Lihat [Identitas](#identitas).
+
+Route ditulis Inggris walau teksnya bukan. `/search` adalah route-nya, sementara label navbar diambil dari `t('nav.cari')` dan tampil "Cari" untuk orang Indonesia, "Search" untuk orang Inggris. URL dan tampilan adalah dua urusan berbeda, dan mengunci keduanya pada bahasa yang sama membuat salah satunya ikut salah begitu ada penerjemahan.
+
 ## Konvensi routing
 
 Routing berbasis file. Tidak ada daftar route yang ditulis manual, dan `vue-router` di `dependencies` tidak perlu dipakai langsung.
@@ -193,7 +219,7 @@ Routing berbasis file. Tidak ada daftar route yang ditulis manual, dan `vue-rout
 - `app/pages/(home)/index.vue` → `/`
 - `app/pages/about.vue` → `/about`
 - `app/pages/blog/index.vue` → `/blog`
-- `app/pages/produk/[id].vue` → `/produk/:id`
+- `app/pages/products/[id].vue` → `/products/:id`
 
 Folder berkurung adalah route group, diabaikan saat menyusun URL. `(home)/index.vue` menghasilkan `/`, bukan `/home`. Folder tanpa kurung seperti `home/` akan menjadi bagian URL.
 
@@ -411,9 +437,7 @@ Classes berikut sudah disiapkan di `main.css`. Pakai ulang, jangan tulis ulang a
 | `.tabel` | Tabel dengan hover baris |
 | `.ganda` | Deretan elemen sejajar |
 
-Kelas di atas disiapkan sebagai pustaka. Saat ini **belum ada** yang memakainya — halaman beranda hanya berisi judul dan tagline. Semua kelas itu menunggu komponen pertama yang membutuhkannya.
-
-Jangan dihapus hanya karena belum terpakai. Hapus kalau memang sudah dipastikan tidak akan dipakai.
+Kelas di atas disiapkan sebagai pustaka, dan dipakai ulang tanpa ditulis ulang. `.konten` dipakai di Settings, Running Man, dan Cari; `.input` dipakai di Cari. Sisanya masih menunggu komponen pertama yang membutuhkannya — jangan dihapus hanya karena belum terpakai. Hapus kalau memang sudah dipastikan tidak akan dipakai.
 
 ### Menambah warna baru
 
@@ -522,10 +546,10 @@ Konvensi yang berlaku:
 - Pesan terjemahan disimpan di `app/i18n/locales/<code>.json`. Blok yang ada sekarang: `hero`, `nav`, `pengaturan`, dan `slot`.
 - Struktur kunci harus sama persis di semua file locale.
 - Jangan menaruh kunci yang belum dipakai. Kalau sebuah komponen dihapus, kunci yang hanya dipakai komponen itu ikut dihapus dari ketiga file locale.
-- Nama file dan kunci boleh bahasa Indonesia, tapi nilai yang bukan brand diterjemahkan. "Running Man" adalah nama acara dari Korea Selatan, bukan brand Rout, dan ditulis sama persis di `id`, `en`, dan `ko` karena itu nama resminya. Keterangannya di `slot.rout` tetap diterjemahkan, karena penjelasan bukan nama.
+- Nilai yang bukan brand diterjemahkan. "Running Man" adalah nama acara dari Korea Selatan, bukan brand Rout, dan ditulis sama persis di `id`, `en`, dan `ko` karena itu nama resminya. Keterangannya di `slot.running_man` tetap diterjemahkan, karena penjelasan bukan nama. Kunci boleh Bahasa Indonesia, tapi nama folder dan file `.vue` tidak — aturan lengkapnya ada di [Penamaan](#penamaan).
 - `restructureDir: 'app/i18n'` dan `langDir: 'locales'` digabung modul jadi satu path `app/i18n/locales`. Mengubah hanya `langDir` akan membuat modul mencari di `i18n/app/i18n/locales/` dan gagal dengan error ENOENT.
 - `localePath` dan `$i18n.locales` tidak tersedia langsung di template. Panggil composable di `<script setup>`: `useLocalePath()`, `useSwitchLocalePath()`, dan `const { locales } = useI18n()`.
-- Untuk link, pakai route name, bukan path: `$localePath('produk-detail')`. Route name dijamin akurat, dan modul menghasilkan tipe sehingga salah ketik langsung terdeteksi IDE.
+- Untuk link, pakai route name, bukan path: `$localePath('product-detail')`. Route name dijamin akurat, dan modul menghasilkan tipe sehingga salah ketik langsung terdeteksi IDE.
 - `language` pada tiap locale wajib diisi, tidak opsional. Dipakai untuk pencocokan browser dan tag SEO.
 
 ### Teks dummy

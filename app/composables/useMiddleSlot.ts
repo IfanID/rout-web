@@ -56,11 +56,17 @@ const KUNCI_SIMPAN = 'slot-tengah:pilihan'
  *  tersebut sudah menyala sebelum pengguna sempat bereaksi. */
 let sudahTerpasang = false
 
-/** Kolom `ikon` dan `huruf` selalu dua-duanya ditulis, walau salah
- *  satunya kosong. Kalau `huruf` hanya ada di sebagian entri,
- *  PINATASAN diperlakukan sebagai union dari dua bentuk objek,
- *  dan akses `.ikon` di sisi yang tidak punya kolom itu berhenti
- *  jadi error tipe — bukan sekadar undefined saat runtime.
+/** Kolom `ikon`, `huruf`, dan `ke` selalu ditulis di semua entri,
+ *  walau isinya kosong. Kalau salah satu hanya ada di sebagian
+ *  entri, PINATASAN diperlakukan sebagai union dari dua bentuk
+ *  objek, dan akses kolom itu di sisi yang tidak memilikinya
+ *  berhenti jadi error tipe — bukan sekadar undefined saat
+ *  runtime.
+ *
+ *  `ke` kosong berarti pintasan itu belum punya halaman, jadi item
+ *  tengah di navbar dirender sebagai tombol mati. Saat ini hanya
+ *  Running Man yang sudah punya halaman, di
+ *  app/pages/(running-man)/running-man.vue.
  *
  *  `as const` bukan gaya penulisan. Tanpa itu `label` melebar jadi
  *  `string` dan pemanggilan `t()` ditolak, karena `t` dikunci ke
@@ -74,10 +80,10 @@ let sudahTerpasang = false
 const PINATASAN = [
   // Mark huruf R. Bukan nama ikon, jadi butuh jalur render sendiri
   // dan tidak boleh ikut diterjemahkan.
-  { id: 'running-man', ikon: '', huruf: 'R', label: 'Running Man', terjemah: false, ket: 'slot.running_man' },
-  { id: 'favorit', ikon: 'lucide:star', huruf: '', label: 'nav.favorit', terjemah: true, ket: 'slot.favorit' },
-  { id: 'tersimpan', ikon: 'lucide:bookmark', huruf: '', label: 'nav.tersimpan', terjemah: true, ket: 'slot.tersimpan' },
-  { id: 'aktivitas', ikon: 'lucide:activity', huruf: '', label: 'nav.aktivitas', terjemah: true, ket: 'slot.aktivitas' }
+  { id: 'running-man', ikon: '', huruf: 'R', label: 'Running Man', terjemah: false, ket: 'slot.running_man', ke: 'running-man' },
+  { id: 'favorit', ikon: 'lucide:star', huruf: '', label: 'nav.favorit', terjemah: true, ket: 'slot.favorit', ke: '' },
+  { id: 'tersimpan', ikon: 'lucide:bookmark', huruf: '', label: 'nav.tersimpan', terjemah: true, ket: 'slot.tersimpan', ke: '' },
+  { id: 'aktivitas', ikon: 'lucide:activity', huruf: '', label: 'nav.aktivitas', terjemah: true, ket: 'slot.aktivitas', ke: '' }
 ] as const
 
 export type Shortcut = (typeof PINATASAN)[number]

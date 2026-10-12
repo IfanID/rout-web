@@ -14,13 +14,17 @@ const Tautan = resolveComponent('NuxtLink')
 
 /* `ke` adalah nama route, bukan path. Dikosongkan untuk item yang
    halamannya belum ada — nilai kosong itulah yang membuat item itu
-   dirender sebagai tombol mati, bukan link. */
+   dirender sebagai tombol mati, bukan link.
+
+   Slot tengah ikut aturan yang sama: `ke` diambil dari pintasan
+   yang sedang terpilih, sehingga item ini jadi link kalau
+   pintasan itu punya halaman, dan tombol mati kalau belum. */
 const item = computed(() => [
   { nama: t('nav.beranda'), ikon: 'lucide:house', huruf: '', ke: 'index' },
-  { nama: t('nav.katalog'), ikon: 'lucide:layout-grid', huruf: '', ke: '' },
-  { nama: label.value, ikon: pintasan.value.ikon, huruf: pintasan.value.huruf, ke: '' },
+  { nama: t('nav.cari'), ikon: 'lucide:search', huruf: '', ke: 'search' },
+  { nama: label.value, ikon: pintasan.value.ikon, huruf: pintasan.value.huruf, ke: pintasan.value.ke },
   { nama: t('nav.pengaturan'), ikon: 'lucide:settings', huruf: '', ke: 'settings' },
-  { nama: t('nav.profil'), ikon: 'lucide:user', huruf: '', ke: '' }
+  { nama: t('nav.profil'), ikon: 'lucide:user', huruf: '', ke: 'profile' }
 ])
 
 /* Slash di ujung dibuang sebelum dibandingkan: satu sisi bisa
@@ -42,10 +46,32 @@ const aktif = computed(() =>
     s.ke ? tanpaSlash(route.path) === tanpaSlash(localePath(s.ke)) : false
   )
 )
+
+/* Animasi tetesan baru dinyalakan setelah frame pertama selesai.
+
+   Selama halaman baru dimuat, ukuran navbar belum tentu sudah
+   mapan. Kalau `transition` sudah menyala sejak style pertama,
+   selisih antara nilai yang belum mapan dan nilai akhirnya
+   direkam sebagai titik awal animasi — dan tetesan tampak
+   meluncur dari luar layar kanan walaupun pemakainya tidak
+   berpindah ke mana pun.
+
+   Yang diperlukan cuma menahannya sampai cat pertama selesai.
+   Dua rAF dipakai karena satu rAF saja masih bisa jatuh di frame
+   yang sama dengan cat pertama. */
+const siap = ref(false)
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      siap.value = true
+    })
+  })
+})
 </script>
 
 <template>
-  <nav class="nav">
+  <nav class="nav" :class="{ 'nav--siap': siap }">
     <ul class="nav__list">
       <!-- Penting: tanpa pembungkus <li>, dan SVG indikator di dalam
            <ul>. Selector ~ dan :nth-child hanya bekerja kalau semua
@@ -125,22 +151,40 @@ const aktif = computed(() =>
      --title-color     -> --teks-sekunder
      --body-color      -> --teks-aksen-tekan
 
-   Plus dua perbaikan dari aslinya:
+   Plus tiga perbaikan dari aslinya:
 
    1. Width dibatasi supaya navbar tidak meluar di layar yang lebih
       sempit dari 328px. Tanpa itu, margin auto tidak berlaku dan
       isinya terdorong ke tepi kiri.
 
-   2. Rumus ruang pakai 100cqw, bukan 100vw. Navbar ini
-      `position: fixed` dengan `left: 0; right: 0`, jadi lebarnya
-      viewport dikurangi scrollbar, sedangkan 100vw masih
-      menyertakan scrollbar. Ruang jadi terlalu lebar dan tetesan
-      meleset, makin ke kanan makin jauh karena selisihnya menumpuk
-      tiap langkah.
+   2. Ruang dihitung dari lebar navbar itu sendiri. Versi aslinya
+      memakai `100vw`, sedangkan navbar ini `position: fixed` dengan
+      `left: 0; right: 0`, jadi lebarnya viewport dikurangi
+      scrollbar. Ruang jadi terlalu lebar dan tetesan meleset, makin
+      ke kanan makin jauh karena selisihnya menumpuk tiap langkah.
 
-      Karena 100cqw merujuk ke lebar navbar itu sendiri, rumus yang
-      sama otomatis berlaku juga di layar lebar, tanpa perlu override
-      terpisah.
+   3. Ruang dihitung lewat persentase pada `left`, bukan lewat
+      `translateX`.
+
+      Semula keduanya memakai `100cqw` plus `container-type:
+      inline-size` di navbar. Itu benar secara spesifikasi, tapi
+      nilainya sempat terpecah saat halaman baru dimuat: yang
+      terpecah bukan lebar navbar, tapi viewport, sehingga ruang
+      antar item jadi jauh lebih lebar dan tetesan mulai dari luar
+      layar kanan lalu meluncur ke tempatnya. Karena `transform`
+      punya transition, selisih yang hanya beberapa frame itu tetap
+      terlihat sebagai gerakan.
+
+      Persentase pada `left` selalu relatif ke padding box elemen
+      yang jadi pemb positioning, yaitu navbar ini juga, dan
+      nilainya tersedia sejak layout pertama. Tidak ada container
+      query yang perlu ditunggu. Rumus angkanya sendiri tidak
+      berubah, jadi tetesan tetap pas di item yang sama, termasuk
+      di layar lebar tanpa override terpisah.
+
+      Yang dibayar: `left` menganimate layout, sementara
+      `transform` cuma komposit. Untuk satu SVG 94x56 di dalam
+      navbar yang diam, selisihnya tidak terasa.
    ========================================================================== */
 
 .nav {
@@ -174,15 +218,18 @@ const aktif = computed(() =>
 
      120px yang lama = 5 item x 24px, sekarang jadi
      var(--lebar-item) * 5. Perkalian harus di dalam calc karena
-     --lebar-item bertipe length, bukan number. */
+     --lebar-item bertipe length, bukan number.
+
+     Persentase di sini sengaja, bukan `cqw`. Nilai `--ruang`
+     diselesaikan di tempat variabel ini dipakai, yaitu pada
+     `left` di .indicator, relatif ke navbar ini. Container query
+     unit baru bisa dijawab setelah ukuran container selesai
+     dihitung, dan saat halaman baru dimuat belum tentu sudah.
+     Lihat catatan poin 3 di atas. */
   --lebar-item: 1.5rem;
-  --ruang: calc((100cqw - var(--lebar-item) * 5) / 6);
+  --ruang: calc((100% - var(--lebar-item) * 5) / 6);
   --langkah: calc(var(--ruang) + var(--lebar-item));
   --mula: calc(var(--ruang) + var(--lebar-item) / 2 - 47px);
-
-  /* Dibuat container agar 100cqw di atas merujuk ke navbar ini,
-     bukan ke elemen luar seperti <html>. */
-  container-type: inline-size;
 
   z-index: 30;
 }
@@ -337,21 +384,35 @@ const aktif = computed(() =>
 
 .indicator {
   position: absolute;
-  left: 0;
+
   /* Menempel di tepi ATAS navbar, karena tetesan yang sudah dirotasi
      melebar di atas dan menjurus ke bawah. Kalau tetap di
-     `bottom: 0`, sayap lebarnya jatuh di tengah navbar dan bentuk
-     bentuknya hilang. */
-  top: 0;
-  fill: var(--aksen-utama);
-  transition: 0.3s;
+     `bottom: 0`, sayap lebarnya jatuh di tengah navbar dan bentuknya
+     hilang.
 
-  /* Poros di tepi atas, mengikuti titik keluar air. Tetesan tumbuh
+     Posisi horizontalnya lewat `left`, bukan `translateX`.
+
+     Alasannya ada di --ruang: persentase hanya boleh dipakai di
+     properti yang menerimanya, yaitu `left` yang relatif ke navbar
+     ini. Kalau dipakai di `translateX`, persentasenya relatif ke
+     lebar SVG itu sendiri, yaitu 94px, bukan navbar.
+
+     Poros di tepi atas, mengikuti titik keluar air. Tetesan tumbuh
      ke bawah menjauhi navbar, dan bagian lebarnya tetap rata
      dengan tepi atas navbar. */
-  transform: translateX(var(--mula)) scale(1);
+  left: var(--mula);
+  top: 0;
+  fill: var(--aksen-utama);
+  transform: scale(1);
   transform-origin: 50% 0%;
-  transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Animasi baru menyala setelah frame pertama selesai, supaya nilai
+   yang belum mapan tidak terekam sebagai titik awal. Lihat catatan
+   `siap` di script. */
+.nav--siap .indicator {
+  transition: left 0.3s cubic-bezier(0.34, 1.4, 0.64, 1),
+              transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 /* Huruf dan ikon sama-sama mewarisi dari .nav__mark, jadi satu
@@ -361,34 +422,42 @@ const aktif = computed(() =>
 }
 
 /* --- Move indicator ---
-   Scale ikut ditulis di sini, bukan cuma translateX. Kalau scale
-   hanya ada di .indicator, aturan ini akan menimpanya dan tetesan
-   tidak ikut membesar. */
+   Scale ikut ditulis di sini, bukan cuma di .indicator, kalau tidak
+   aturan ini akan menimpanya dan tetesan tidak ikut membesar. */
 
 .nav__link:nth-child(1).active-link ~ .indicator {
-  transform: translateX(var(--mula)) scale(1.1);
+  left: var(--mula);
+  transform: scale(1.1);
 }
 
 .nav__link:nth-child(2).active-link ~ .indicator {
-  transform: translateX(calc(var(--mula) + var(--langkah) * 1)) scale(1.1);
+  left: calc(var(--mula) + var(--langkah) * 1);
+  transform: scale(1.1);
 }
 
 .nav__link:nth-child(3).active-link ~ .indicator {
-  transform: translateX(calc(var(--mula) + var(--langkah) * 2)) scale(1.1);
+  left: calc(var(--mula) + var(--langkah) * 2);
+  transform: scale(1.1);
 }
 
 .nav__link:nth-child(4).active-link ~ .indicator {
-  transform: translateX(calc(var(--mula) + var(--langkah) * 3)) scale(1.1);
+  left: calc(var(--mula) + var(--langkah) * 3);
+  transform: scale(1.1);
 }
 
 .nav__link:nth-child(5).active-link ~ .indicator {
-  transform: translateX(calc(var(--mula) + var(--langkah) * 4)) scale(1.1);
+  left: calc(var(--mula) + var(--langkah) * 4);
+  transform: scale(1.1);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .nav__mark,
   .nav__name,
-  .indicator {
+  .indicator,
+  /* Specificity-nya lebih tinggi dari .nav--siap .indicator, jadi
+     harus disebut terpisah dan sesudahnya. Tanpa ini, reduce motion
+     diabaikan begitu navbar selesai frame pertama. */
+  .nav--siap .indicator {
     transition: none;
   }
 }
