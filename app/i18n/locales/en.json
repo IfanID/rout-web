@@ -2,5 +2,26 @@
   "hero": {
     "judul": "Respawn Outbase",
     "tagline": "Everything you lost, one respawn away."
+  },
+  "pengaturan": {
+    "judul": "Settings",
+    "slot": "Middle slot",
+    "pilih_slot": "Choose the middle slot",
+    "tutup": "Close"
+  },
+  "slot": {
+    "running_man": "The Running Man mark, from the South Korean variety show.",
+    "favorit": "Products or menus you open the most.",
+    "tersimpan": "Things you've saved to look at later.",
+    "aktivitas": "Your recent Rout activity on this device."
+  },
+  "nav": {
+    "beranda": "Home",
+    "katalog": "Catalog",
+    "pengaturan": "Settings",
+    "profil": "Profile",
+    "favorit": "Favorites",
+    "tersimpan": "Saved",
+    "aktivitas": "Activity"
   }
 }

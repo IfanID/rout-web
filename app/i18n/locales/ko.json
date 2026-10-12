@@ -2,5 +2,26 @@
   "hero": {
     "judul": "Respawn Outbase",
     "tagline": "잃어버린 모든 것을, 한 번의 리스폰으로."
+  },
+  "pengaturan": {
+    "judul": "설정",
+    "slot": "가운데 슬롯",
+    "pilih_slot": "가운데 슬롯 내용 고르기",
+    "tutup": "닫기"
+  },
+  "slot": {
+    "running_man": "한국 예능 프로그램 Running Man의 마크입니다.",
+    "favorit": "가장 자주 여는 상품이나 메뉴입니다.",
+    "tersimpan": "나중에 다시 볼 수 있도록 저장한 항목입니다.",
+    "aktivitas": "이 기기에서 최근 Rout 활동 기록입니다."
+  },
+  "nav": {
+    "beranda": "홈",
+    "katalog": "카탈로그",
+    "pengaturan": "설정",
+    "profil": "프로필",
+    "favorit": "즐겨찾기",
+    "tersimpan": "저장됨",
+    "aktivitas": "활동"
   }
 }

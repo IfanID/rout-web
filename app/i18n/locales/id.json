@@ -2,5 +2,26 @@
   "hero": {
     "judul": "Respawn Outbase",
     "tagline": "Semua yang kamu kehilangan, satu respawn lagi."
+  },
+  "pengaturan": {
+    "judul": "Pengaturan",
+    "slot": "Slot tengah",
+    "pilih_slot": "Pilih isi slot tengah",
+    "tutup": "Tutup"
+  },
+  "slot": {
+    "running_man": "Mark Running Man, dari acara variety show Korea Selatan.",
+    "favorit": "Produk atau menu yang paling sering kamu buka.",
+    "tersimpan": "Koleksi yang kamu simpan untuk dibaca lain kali.",
+    "aktivitas": "Riwayat aktivitas Rout di perangkat ini."
+  },
+  "nav": {
+    "beranda": "Beranda",
+    "katalog": "Katalog",
+    "pengaturan": "Pengaturan",
+    "profil": "Profil",
+    "favorit": "Favorit",
+    "tersimpan": "Tersimpan",
+    "aktivitas": "Aktivitas"
   }
 }

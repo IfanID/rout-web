@@ -55,6 +55,37 @@ feat(auth): tambah halaman login
 fix(komposisi): perbaiki teks yang terpotong di layar kecil
 ```
 
+### Isi commit
+
+Baris pertama itu **hanya ringkasan**. Aturan "satu baris" di atas berlaku pada baris pertama, bukan pada seluruh pesan. Perubahan yang besar wajib punya body — kalau tidak, `git log` hanya memberi tahu *apa* yang berubah, tapi tidak *bagaimana* dan tidak *mengapa*.
+
+Formatnya: baris pertama, baris kosong, lalu body.
+
+```
+feat: tambah pengaturan slot tengah navbar dan navigasi item
+
+Slot tengah di navbar bawah sekarang bisa diganti sendiri lewat
+halaman Pengaturan, dan disimpan di localStorage per perangkat.
+
+- useMiddleSlot menyimpan empat pintasan slot tengah
+- SlotMark menyatukan tampilan mark ikon dan huruf di satu tempat
+- SlotSelect menampilkan pemicu dan menu pilihan
+- halaman /settings untuk mengganti slot tengah
+- item navbar tertaut ke halaman yang tersedia
+- label navbar dan keterangan diterjemahkan di id, en, ko
+```
+
+Yang bisa dicatat di body:
+
+- **File baru dan apa fungsinya** — supaya orang tahu ada komponen baru tanpa harus menelusuri diff
+- **Perilaku yang berubah**, bukan hanya file yang berubah — "penanda aktif mengikuti route", bukan "ubah BottomNav.vue"
+- **Alasan** di balik pilihan yang tidak obvious — kenapa `SlotMark` diekstrak, kenapa identifier tidak boleh memakai nama produk
+- **Yang sengaja tidak diubah** — supaya pembaca tidak salah mengira
+
+Yang tidak perlu: daftar file yang berubah, karena git sudah menampilkannya.
+
+Untuk commit kecil, satu baris saja sudah cukup — tidak wajib ada body.
+
 ## Identitas
 
 | Nama | Peran | Tampil di UI |
@@ -72,6 +103,12 @@ Cara memakainya:
 - `rout-web` hanya untuk repo. Jangan pernah dimunculkan di UI, dan jangan diubah.
 
 Nama produk **tidak** dipakai untuk nama file, folder, atau kode. Nama file memakai isi komponennya saja, karena nama folder sudah menyediakan konteksnya: `navigation/RoutHeader.vue` menjadi `navigation/Header.vue`. Prefix `Rout` tidak ditulis di depan nama komponen — bukan di nama file, bukan di nama variabel, bukan di nama class CSS.
+
+Larangan itu juga berlaku untuk **identifier**, bukan cuma nama file dan class CSS. Yang tidak boleh: id atau konstanta yang berisi nama produk, kunci `localStorage`, dan kunci terjemahan. Ketiganya menyimpan nama itu lebih lama dari mana pun — `localStorage` bahkan bertahan setelah kode dihapus.
+
+Soalnya nama produk sangat mudah bocor ke sini lewat jalan pintas. Menamai sebuah pilihan `rout` terasa wajar karena produknya memang Rout, tapi id itu ikut terbawa ke penyimpanan browser dan bentrok dengan Rout yang sebenarnya. Nama identifier pakai isi atau fungsinya: pilihan slot tengah yang menunjuk acara Running Man memakai id `running-man`, bukan `rout`.
+
+Satu-satunya tempat nama produk boleh muncul di luar dokumentasi adalah **UI yang dilihat pengguna** — logo di header, teks yang memang menyebut Rout, dan teks locale seperti "Riwayat aktivitas Rout". Itu bukan kebocoran, itu memang gunanya.
 
 Nama folder di `app/pages/` selalu soal routing, bukan branding. Jangan menaruh nama produk di sana kecuali memang ingin menjadikannya bagian URL.
 
@@ -106,16 +143,22 @@ rout-web/
 │   ├── components/
 │   │   ├── navigation/
 │   │   │   ├── Header.vue
-│   │   │   ├── BottomNav.vue
-│   │   │   └── LocaleSwitcher.vue
+│   │   │   ├── BottomNav.vue    Navbar bawah + slot tengah yang bisa diganti
+│   │   │   ├── LocaleSwitcher.vue Belum dipakai halaman mana pun
+│   │   │   └── slot/
+│   │   │       ├── SlotMark.vue    Mark satu item slot: ikon atau huruf
+│   │   │       └── SlotSelect.vue  Pemicu + menu pilih isi slot tengah
 │   │   └── notification/
 │   │       └── Toaster.vue
 │   ├── composables/
-│   │   └── useNotifications.ts
+│   │   ├── useNotifications.ts
+│   │   └── useMiddleSlot.ts      Daftar pintasan slot tengah navbar
 │   ├── i18n/
-│   │   └── locales/          en.json, id.json, ko.json (hero.* saja)
+│   │   └── locales/          en.json, id.json, ko.json (hero, nav, pengaturan, slot)
 │   └── pages/
-│       └── (home)/index.vue  Beranda
+│       ├── (home)/index.vue  Beranda
+│       └── (settings)/
+│           └── settings.vue   → /settings
 └── public/
     ├── favicon.ico
     └── robots.txt
@@ -125,7 +168,23 @@ Folder `app/` menunjukkan konvensi srcDir Nuxt 4. Semua halaman, komponen, dan b
 
 File `.env` ada di `.gitignore`, jadi tidak ikut ter-commit. Clone repo di mesin lain harus menyalin `.env.example` menjadi `.env` lebih dulu.
 
-Switcher bahasa sudah menjadi komponen sendiri dan tidak lagi muncul di beranda. Belum ada navbar atau footer, jadi komponen itu belum dipakai halaman mana pun.
+Header dan BottomNav sudah dipasang di `app.vue`, jadi keduanya dipakai semua halaman. Switcher bahasa sudah menjadi komponen sendiri dan tidak lagi muncul di beranda, tetapi belum dipasang di mana pun — ia masih kerangka 16 baris tanpa style, dan menunggu tempat yang benar-benar butuh pengalih bahasa.
+
+Halaman yang ada baru `/` dan `/settings`. Item navbar Katalog, Profil, dan slot tengah sengaja dirender sebagai tombol mati, bukan link, karena halamannya belum ada.
+
+## Organisasi folder
+
+Aturan ini berlaku untuk semua folder di proyek ini — komponen, halaman, composable, dan apa pun yang muncul nanti. Bukan khusus `components/`.
+
+Folder baru lahir dari **fungsi yang berbeda**, bukan dari bertambahnya jumlah file. Kalau file yang ditambahkan masih satu urusan dengan isi foldernya, ia tetap di sana.
+
+**Sebelum membuat folder, jawab dulu:** apa yang *tidak bisa* lagi dikelompokkan ke folder induk? Kalau tidak ada jawabannya, jangan dibuat.
+
+**Nesting** perlu kalau dua syarat ini terpenuhi sekaligus — isinya sudah banyak, **dan** batas antar kelompoknya jelas. Jumlah file saja bukan alasan. Sepuluh file yang semuanya satu urusan lebih baik tetap dalam satu folder daripada dipecah karena sudah banyak.
+
+**Satu file dalam satu folder** adalah folder yang tidak menambah informasi apa pun. Kalau sebuah kelompok baru hanya berisi satu file, jangan buat foldernya.
+
+**Nama folder** menjelaskan batas fungsinya, bukan warnanya atau isinya. `navigation/slot/` berarti komponen untuk fitur slot tengah, bukan "slot yang warnanya gelap". Batas nama yang jelas ada di [Konvensi komponen](#konvensi-komponen); `common/`, `shared/`, `misc/`, dan `utils/` dihindari karena isinya tidak pernah punya batas yang disepakati.
 
 ## Konvensi routing
 
@@ -142,26 +201,26 @@ Gunakan `<NuxtLink to="...">`, bukan `<a href="...">`, supaya navigasi client-si
 
 ## Konvensi komponen
 
-Komponen dan composable dikelompokkan dalam subfolder sesuai area, supaya foldernya tidak menumpuk:
+Komponen dikelompokkan dalam subfolder sesuai area, supaya foldernya tidak menumpuk:
 
 ```
 app/components/
 ├── navigation/
 │   ├── Header.vue
-│   ├── Footer.vue
-│   └── LocaleSwitcher.vue
+│   ├── BottomNav.vue
+│   ├── LocaleSwitcher.vue
+│   └── slot/
+│       ├── SlotMark.vue
+│       └── SlotSelect.vue
 ├── notification/
 │   └── Toaster.vue
 ├── product/
 │   └── ProductCard.vue
 └── ui/
     └── ButtonPrimary.vue
-
-app/composables/
-└── useNotifications.ts
 ```
 
-Pakai nama folder yang batasnya jelas: `navigation/`, `notification/`, `product/`, `order/`, `user/`, `ui/`, `form/`. Hindari `common/`, `shared/`, `misc/`, atau `utils/` karena isinya tidak pernah punya batas yang disepakati.
+Cara memilih folder dijelaskan di [Organisasi folder](#organisasi-folder). Ringkasnya: `slot/` ada karena batas fungsinya nyata — `SlotSelect` memakai `SlotMark` di pemicu dan di dalam menunya, dan `SlotMark` juga melayani `BottomNav`, jadi keduanya satu fitur yang tidak bisa dipisah. Kalau nanti isinya masih satu urusan, taruh langsung di `navigation/`.
 
 ### Composable tidak dikelompokkan dalam subfolder
 
@@ -190,8 +249,11 @@ Nuxt menggabungkan nama folder dan nama file menjadi nama komponen. Perilaku baw
 | `navigation/LocaleSwitcher.vue` | `<NavigationLocaleSwitcher />` |
 | `ui/ButtonPrimary.vue` | `<UiButtonPrimary />` |
 | `ui/button/ButtonPrimary.vue` | `<UiButtonPrimary />` |
+| `navigation/slot/SlotSelect.vue` | `<NavigationSlotSelect />` |
 
-Perhatikan baris ketiga tabel: prefix yang mengulang nama file otomatis dibuang. Jadi `ui/UiButton.vue` menjadi `<UiButton />`, bukan `<UiUiButton />`. Kalau nama file sudah cocok dengan nama foldernya, tidak perlu diulang.
+Perhatikan baris ketiga dan keempat tabel: prefix yang mengulang nama file otomatis dibuang. Jadi `ui/UiButton.vue` menjadi `<UiButton />`, bukan `<UiUiButton />`, dan `navigation/slot/SlotSelect.vue` menjadi `<NavigationSlotSelect />` — bukan `<NavigationSlotSlotSelect />`. Kalau nama file sudah cocok dengan nama foldernya, tidak perlu diulang.
+
+Artinya memindahkan file ke subfolder tidak selalu mengubah nama komponen. `SlotMark.vue` dan `SlotSelect.vue` sudah bernama Slot, jadi memindahkannya ke `slot/` tidak mengubah apa pun yang memanggilnya.
 
 Kalau nama file `index.vue`, yang dipakai adalah nama foldernya:
 
@@ -220,7 +282,7 @@ Halaman di `app/pages/` tidak pernah di-prefix. `app/pages/about.vue` tetap `<Ab
 
 Tiga tingkat sudah cukup: `app/components/ui/button/ButtonPrimary.vue`. Kalau sudah mencapai level itu, pengelompokan di atasnya yang perlu ditinjau, bukan dibuat lebih dalam.
 
-Nesting hanya perlu kalau isinya sudah terlalu banyak untuk satu area dan batas antar kelompok jelas. Kalau `ui/` masih 5 file, tetap satu folder. Jangan bikin folder yang isinya satu file — taruh langsung di `ui/`.
+Kapan perlu membuat folder, dan kapan tidak, dijelaskan di [Organisasi folder](#organisasi-folder). Ringkasnya di sini: satu file dalam satu folder tidak pernah dibenarkan, dan menambah file yang masih satu urusan dengan isi folder induk bukan alasan untuk membuat folder baru.
 
 ## Sistem warna
 
@@ -240,7 +302,7 @@ Warna baru hanya boleh masuk lewat lapisan 1, lalu diekspor ke lapisan 2. Jangan
 
 | Lapisan | Isi | Dipakai oleh |
 |---|---|---|
-| 1 Primitif | Ramp mentah | Tidak ada, hanya 내부 |
+| 1 Primitif | Ramp mentah | Tidak ada, hanya internal |
 | 2 Semantik | Peran dan penggunaan | Semua komponen |
 | 3 Komponen | Token khusus komponen | Bila ada kebutuhan nyata |
 
@@ -457,9 +519,10 @@ Pemilihan `prefix` disengaja: bahasa default bisa diubah kapan saja tanpa merusa
 
 Konvensi yang berlaku:
 
-- Pesan terjemahan disimpan di `app/i18n/locales/<code>.json`. Saat ini baru ada blok `hero` dengan `judul` dan `tagline`.
+- Pesan terjemahan disimpan di `app/i18n/locales/<code>.json`. Blok yang ada sekarang: `hero`, `nav`, `pengaturan`, dan `slot`.
 - Struktur kunci harus sama persis di semua file locale.
 - Jangan menaruh kunci yang belum dipakai. Kalau sebuah komponen dihapus, kunci yang hanya dipakai komponen itu ikut dihapus dari ketiga file locale.
+- Nama file dan kunci boleh bahasa Indonesia, tapi nilai yang bukan brand diterjemahkan. "Running Man" adalah nama acara dari Korea Selatan, bukan brand Rout, dan ditulis sama persis di `id`, `en`, dan `ko` karena itu nama resminya. Keterangannya di `slot.rout` tetap diterjemahkan, karena penjelasan bukan nama.
 - `restructureDir: 'app/i18n'` dan `langDir: 'locales'` digabung modul jadi satu path `app/i18n/locales`. Mengubah hanya `langDir` akan membuat modul mencari di `i18n/app/i18n/locales/` dan gagal dengan error ENOENT.
 - `localePath` dan `$i18n.locales` tidak tersedia langsung di template. Panggil composable di `<script setup>`: `useLocalePath()`, `useSwitchLocalePath()`, dan `const { locales } = useI18n()`.
 - Untuk link, pakai route name, bukan path: `$localePath('produk-detail')`. Route name dijamin akurat, dan modul menghasilkan tipe sehingga salah ketik langsung terdeteksi IDE.

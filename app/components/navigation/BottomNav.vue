@@ -1,17 +1,47 @@
 <script setup lang="ts">
-const item = [
-  { nama: 'Home', ikon: 'lucide:house' },
-  { nama: 'Profile', ikon: 'lucide:user' },
-  { nama: 'Message', ikon: 'lucide:message-circle' },
-  { nama: 'Mail', ikon: 'lucide:mail-open' },
-  { nama: 'Settings', ikon: 'lucide:settings' }
-]
+const { t } = useI18n()
+const localePath = useLocalePath()
+const route = useRoute()
 
-const aktif = ref(0)
+// Slot tengah: satu-satunya item yang isinya bisa diganti pemakai.
+const { pintasan, label } = useMiddleSlot()
 
-function pilih(i: number) {
-  aktif.value = i
-}
+/* NuxtLink dirender lewat `:is`, bukan sebagai tag, karena tiap
+   item bisa berupa link atau tombol tergantung apakah halamannya
+   sudah ada. resolveComponent dipanggil eksplisit supaya tidak
+   bergantung pada resolusi string saat runtime. */
+const Tautan = resolveComponent('NuxtLink')
+
+/* `ke` adalah nama route, bukan path. Dikosongkan untuk item yang
+   halamannya belum ada — nilai kosong itulah yang membuat item itu
+   dirender sebagai tombol mati, bukan link. */
+const item = computed(() => [
+  { nama: t('nav.beranda'), ikon: 'lucide:house', huruf: '', ke: 'index' },
+  { nama: t('nav.katalog'), ikon: 'lucide:layout-grid', huruf: '', ke: '' },
+  { nama: label.value, ikon: pintasan.value.ikon, huruf: pintasan.value.huruf, ke: '' },
+  { nama: t('nav.pengaturan'), ikon: 'lucide:settings', huruf: '', ke: 'settings' },
+  { nama: t('nav.profil'), ikon: 'lucide:user', huruf: '', ke: '' }
+])
+
+/* Slash di ujung dibuang sebelum dibandingkan: satu sisi bisa
+   memberikannya dan sisi lain tidak, sehingga "/id" dan "/id/"
+   tidak akan dianggap sama. */
+const tanpaSlash = (p: string) => p.replace(/\/$/, '')
+
+/* Item aktif dibaca dari route, bukan dari klik terakhir.
+   Sebelumnya ini `ref(0)`, jadi item pertama menyala terus
+   bahkan ketika sedang di halaman lain.
+
+   Dibandingkan lewat path dan bukan route.name, supaya tidak
+   bergantung pada cara modul i18n menamai route per locale.
+
+   Hasilnya -1 kalau halaman ini memang tidak punya item navbar.
+   Tetesan lalu diam di posisi dasar tanpa membesar. */
+const aktif = computed(() =>
+  item.value.findIndex(s =>
+    s.ke ? tanpaSlash(route.path) === tanpaSlash(localePath(s.ke)) : false
+  )
+)
 </script>
 
 <template>
@@ -19,19 +49,31 @@ function pilih(i: number) {
     <ul class="nav__list">
       <!-- Penting: tanpa pembungkus <li>, dan SVG indikator di dalam
            <ul>. Selector ~ dan :nth-child hanya bekerja kalau semua
-           elemen ini saudara satu sama lain. -->
-      <button
+           elemen ini saudara satu sama lain. Itu juga alasan
+           `<component>` dipakai di sini: ia merender <a> atau
+           <button> langsung, tanpa membungkus elemen lain yang
+           bisa merusak urutan saudara. -->
+      <component
+        :is="satu.ke ? Tautan : 'button'"
         v-for="(satu, i) in item"
-        :key="satu.nama"
-        type="button"
+        :key="i"
+        :to="satu.ke ? localePath(satu.ke) : undefined"
+        :type="satu.ke ? undefined : 'button'"
+        :disabled="!satu.ke"
         class="nav__link"
         :class="{ 'active-link': i === aktif }"
         :aria-current="i === aktif ? 'page' : undefined"
-        @click="pilih(i)"
       >
-        <i><Icon :name="satu.ikon" /></i>
+        <!-- Mark ikon atau huruf, keduanya lewat satu komponen
+             supaya kotak dan tipografinya hanya ada di satu
+             tempat — lihat navigation/slot/SlotMark.vue. -->
+        <NavigationSlotMark
+          class="nav__mark"
+          :ikon="satu.ikon"
+          :huruf="satu.huruf"
+        />
         <span class="nav__name">{{ satu.nama }}</span>
-      </button>
+      </component>
 
       <!-- Tetesan air, dirotasi 180° dari source aslinya.
 
@@ -122,10 +164,21 @@ function pilih(i: number) {
 
      --langkah  jarak antar titik tengah = ruang + lebar ikon
      --mula     jarak tepi ke pusat tetesan pertama, dikurangi
-                separuh lebar indikator (47px) supaya pas di ikon */
-  --ruang: calc((100cqw - 120px) / 6);
-  --langkah: calc(var(--ruang) + 24px);
-  --mula: calc(var(--ruang) + 12px - 47px);
+                separuh lebar indikator (47px) supaya pas di ikon
+
+     Ketiga rumus ini mengasumsikan tiap item selebar 1.5rem.
+     Angka itu ditulis lewat --lebar-item, bukan langsung, supaya
+     cuma ada satu nilai yang menentukan: kalau kotak mark nanti
+     diubah, rumus ini ikut berubah dan tetesan tidak meleset
+     diam-diam.
+
+     120px yang lama = 5 item x 24px, sekarang jadi
+     var(--lebar-item) * 5. Perkalian harus di dalam calc karena
+     --lebar-item bertipe length, bukan number. */
+  --lebar-item: 1.5rem;
+  --ruang: calc((100cqw - var(--lebar-item) * 5) / 6);
+  --langkah: calc(var(--ruang) + var(--lebar-item));
+  --mula: calc(var(--ruang) + var(--lebar-item) / 2 - 47px);
 
   /* Dibuat container agar 100cqw di atas merujuk ke navbar ini,
      bukan ke elemen luar seperti <html>. */
@@ -183,9 +236,27 @@ function pilih(i: number) {
   background: none;
   cursor: pointer;
 
+  /* Elemen ini bisa jadi <a> (item yang halamannya sudah ada)
+     atau <button> (yang belum). Tanpa dua baris ini, begitu
+     ada <a> di antara keduanya, navbar akan menampilkan teks
+     biru bergaris bawah bawaan browser — bukan tema Rout. */
+  color: inherit;
+  text-decoration: none;
+
   /* Hilangkan kotak biru bawaan Android saat disentuh. */
   outline: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Item yang halamannya belum ada.
+
+   `disabled` dipakai, bukan sekadar `aria-disabled`, supaya item
+   ini tidak masuk urutan tab dan tidak bisa terpicu Enter.
+   Sebuah control yang kelihatan bisa diklik tapi tidak melakukan
+   apa pun lebih buruk daripada yang terlihat mati. */
+.nav__link:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* Fokus keyboard tetap dikasih garis. Menjamanya jadi buta. */
@@ -195,13 +266,28 @@ function pilih(i: number) {
   border-radius: var(--radius-sedang);
 }
 
-.nav__link i {
-  font-size: 1.5rem;
-  font-style: normal;
+/* Mark item.
+
+   Kotak dan tipografinya sekarang milik
+   navigation/slot/SlotMark.vue, bukan di sini. Yang tersisa di
+   navbar cuma warna, z-index, dan transisinya.
+
+   Aturan ini hanya menata warna. Kotak 24x24 yang tetap pernah
+   ada di sini sudah pindah ke komponen mark, karena tiga tempat
+   butuh ukuran yang sama persis. Kalau ukuran kotak meleset,
+   space-evenly menghitung ulang ruangnya sementara rumus --ruang
+   tetap memakai lebar yang sama — dan tetesan bergeser. */
+.nav__mark {
   color: var(--teks-sekunder);
   z-index: 20;
-  transition: 0.3s;
+  transition: color var(--transisi);
 }
+
+/* Mark berupa huruf tidak punya aturan terpisah di navbar lagi.
+   Aturan huruf dan kotak ada di navigation/slot/SlotMark.vue.
+   Warna huruf ikut .nav__mark karena mewarisi, jadi aturan
+   .active-link di bawah otomatis berlaku untuk ikon maupun
+   huruf. */
 
 /* Label teks, di dalam tetesan.
 
@@ -268,7 +354,9 @@ function pilih(i: number) {
   transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
-.active-link i {
+/* Huruf dan ikon sama-sama mewarisi dari .nav__mark, jadi satu
+   aturan ini menutup keduanya. */
+.active-link .nav__mark {
   color: var(--teks-aksen-tekan);
 }
 
@@ -298,7 +386,7 @@ function pilih(i: number) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nav__link i,
+  .nav__mark,
   .nav__name,
   .indicator {
     transition: none;
