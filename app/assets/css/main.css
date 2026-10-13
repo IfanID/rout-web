@@ -211,6 +211,71 @@ a:hover {
   margin-bottom: 1rem;
 }
 
+/* ---------- Label ---------- */
+
+/* Micro-label: menandai satu nilai di dalam kartu atau baris.
+ *
+ * Beda dari `.bagian__judul`, yang menandai batas bagian dan
+ * membawa jarak bawah sendiri. Keduanya sengaja bentuk hurufnya
+ * sama — yang membedakan hanya perannya, bukan tampilannya. Kalau
+ * label di dalam kartu memakai bentuk huruf lain dari judul bagian,
+ * isi kartu terlihat seperti paragraf yang kebetulan berkapital.
+ *
+ * Tanpa `margin-bottom` dengan sengaja. Jarak ke bawah label itu
+ * milik pemanggil, karena jarak yang tepat berbeda menurut apa yang
+ * sedang ditandai. */
+.label {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teks-lembut);
+}
+
+/* ---------- Daftar keterangan ---------- */
+
+/* Ikon di depan kalimat, dibaca berurutan dan tanpa baris yang bisa
+ * diketuk. Dipakai di kartu acara dan kartu tentang.
+ *
+ * `.meta__butir` memakai `display: flex` supaya ikon dan teksnya
+ * duduk sebaris dan ikonnya ikut tinggi teks. Teksnya sendiri
+ * diletakkan di dalam `.meta__butir` langsung, bukan di flex item
+ * terpisah, karena tidak ada yang perlu diatur ulang jalannya.
+ *
+ * Jarak antar butir longgar di arah mendatar dan rapat di arah
+ * vertikal: daftar ini dibaca dengan mata yang menyapu, bukan
+ * satu per satu seperti daftar bertingkat. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+
+  margin: 0.875rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meta__butir {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  font-size: 0.8125rem;
+  color: var(--teks-lembut);
+}
+
+/* Ikon sebaris disamakan tingginya dengan huruf teks, supaya ikon
+ * tidak terlihat lebih besar dari kalimatnya.
+ *
+ * Kelas diletakkan langsung di `<Icon>`, bukan ditulis sebagai
+ * `.meta__butir :deep(svg)`. Bentuk `:deep(svg)` itu tidak pernah
+ * cocok: @nuxt/icon merender ikon sebagai `<span class="iconify">`
+ * dan menggambarnya lewat mask CSS, bukan elemen `<svg>`. Atribut
+ * scope sudah menempel ke elemen akar komponen, jadi kelas yang
+ * ditaruh di `<Icon>` langsung mengenai. */
+.meta__ikon {
+  font-size: 0.875rem;
+}
+
 /* ---------- Kartu ---------- */
 
 .kartu {

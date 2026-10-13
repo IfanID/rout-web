@@ -64,9 +64,6 @@ Formatnya: baris pertama, baris kosong, lalu body.
 ```
 feat: tambah pengaturan slot tengah navbar dan navigasi item
 
-Slot tengah di navbar bawah sekarang bisa diganti sendiri lewat
-halaman Pengaturan, dan disimpan di localStorage per perangkat.
-
 - useMiddleSlot menyimpan empat pintasan slot tengah
 - SlotMark menyatukan tampilan mark ikon dan huruf di satu tempat
 - SlotSelect menampilkan pemicu dan menu pilihan
@@ -82,7 +79,7 @@ Yang bisa dicatat di body:
 - **Alasan** di balik pilihan yang tidak obvious — kenapa `SlotMark` diekstrak, kenapa identifier tidak boleh memakai nama produk
 - **Yang sengaja tidak diubah** — supaya pembaca tidak salah mengira
 
-Yang tidak perlu: daftar file yang berubah, karena git sudah menampilkannya.
+Yang tidak perlu: daftar file yang berubah, karena git sudah menampilkannya. Paragraf pembuka yang mengulang baris pertama juga tidak perlu — baris pertama sudah jadi ringkasannya, dan bullet di bawahnya sudah jadi rinciannya.
 
 Untuk commit kecil, satu baris saja sudah cukup — tidak wajib ada body.
 
@@ -152,14 +149,17 @@ rout-web/
 │   │       └── Toaster.vue
 │   ├── composables/
 │   │   ├── useNotifications.ts
-│   │   └── useMiddleSlot.ts      Pintasan slot tengah navbar + route-nya
+│   │   ├── useMiddleSlot.ts      Pintasan slot tengah navbar + route-nya
+│   │   └── useRunningMan.ts      Data acara Running Man, dipakai beranda + detail
 │   ├── i18n/
-│   │   └── locales/          en.json, id.json, ko.json (hero, nav, pengaturan, slot)
+│   │   └── locales/          en.json, id.json, ko.json (hero, cari, nav, pengaturan, slot)
 │   └── pages/
 │       ├── (home)/index.vue    Beranda
 │       ├── (profile)/
 │       │   └── profile.vue     → /profile
 │       ├── (running-man)/
+│       │   ├── (detail)/
+│       │   │   └── detail.vue  → /detail
 │       │   └── running-man.vue → /running-man
 │       ├── (search)/
 │       │   └── search.vue      → /search
@@ -176,7 +176,9 @@ File `.env` ada di `.gitignore`, jadi tidak ikut ter-commit. Clone repo di mesin
 
 Header dan BottomNav sudah dipasang di `app.vue`, jadi keduanya dipakai semua halaman. Switcher bahasa sudah menjadi komponen sendiri dan tidak lagi muncul di beranda, tetapi belum dipasang di mana pun — ia masih kerangka 16 baris tanpa style, dan menunggu tempat yang benar-benar butuh pengalih bahasa.
 
-Halaman yang ada baru `/`, `/profile`, `/running-man`, `/search`, dan `/settings`. Status tiap item navbar ditentukan oleh kolom `ke`: item dengan `ke` terisi dirender sebagai link, yang kosong sebagai tombol mati. Empat halaman di navbar sudah punya, jadi satu-satunya item yang masih bisa mati adalah slot tengah — dan hanya ketika pintasan yang dipilih belum punya halaman.
+Halaman yang ada baru `/`, `/profile`, `/running-man`, `/detail`, `/search`, dan `/settings`. Status tiap item navbar ditentukan oleh kolom `ke`: item dengan `ke` terisi dirender sebagai link, yang kosong sebagai tombol mati. Empat halaman di navbar sudah punya, jadi satu-satunya item yang masih bisa mati adalah slot tengah — dan hanya ketika pintasan yang dipilih belum punya halaman.
+
+Slot tengah punya dua halaman Running Man: beranda `/running-man` yang hanya menampilkan satu kartu tayang berikutnya, dan `/detail` yang memuat jadwal, tentang acara, statistik, dan daftar episode. Keduanya membaca satu sumber data dari `app/composables/useRunningMan.ts`, jadi tidak ada dua salinan angka yang bisa berbeda. Angkanya masih ditulis tangan di sana — begitu sumbernya jadi API, hanya file itu yang berubah, bukan kedua halaman.
 
 ## Organisasi folder
 
@@ -220,10 +222,39 @@ Routing berbasis file. Tidak ada daftar route yang ditulis manual, dan `vue-rout
 - `app/pages/about.vue` → `/about`
 - `app/pages/blog/index.vue` → `/blog`
 - `app/pages/products/[id].vue` → `/products/:id`
+- `app/pages/(running-man)/(detail)/detail.vue` → `/detail`
 
 Folder berkurung adalah route group, diabaikan saat menyusun URL. `(home)/index.vue` menghasilkan `/`, bukan `/home`. Folder tanpa kurung seperti `home/` akan menjadi bagian URL.
 
 Gunakan `<NuxtLink to="...">`, bukan `<a href="...">`, supaya navigasi client-side dan tidak full reload.
+
+### Nama route bukan sama dengan URL
+
+Keduanya dibaca dari tempat berbeda, jadi yang satu tidak boleh dipakai untuk menyebut yang lain. Nama route dibaca dari nama file dan foldernya, sementara URL dibaca dari path tempat folder berkurung diabaikan. Konsekuensinya:
+
+| Berkas | Nama route | URL |
+|---|---|---|
+| `(running-man)/(detail)/detail.vue` | `detail` | `/detail` |
+| `(running-man)/detail/detail.vue` | `detail` | `/detail/detail` |
+| `(running-man)/detail.vue` | `detail` | `/detail` |
+
+Route group boleh bersarang. `(running-man)/(detail)/detail.vue` menghasilkan `/detail` **dan** bernama `detail` karena kedua group-nya sama-sama hilang tanpa sisa. Karena itu susunan itu yang dipakai untuk halaman detail — folder berkurung `(running-man)` menahan halaman tetap berada di bagian Running Man, dan `(detail)` di bawahnya tidak menambah apa pun ke URL.
+
+### File dan folder tidak boleh bernama sama
+
+`app/pages/(running-man)/running-man.vue` dan folder `app/pages/(running-man)/running-man/` tidak boleh berdiri bersama.
+
+Kalau keduanya ada, Nuxt menyatukannya dan route di bawah folder itu tetap terbentuk dengan nama yang benar — tapi yang dirender adalah komponen dari file `.vue`-nya. `/running-man/detail` membuka halaman beranda tanpa error apa pun: tidak ada HTTP 404, tidak ada peringatan di console, semua tautannya berfungsi. Gejalanya cuma isi yang salah, dan itu jenis bug yang lolos dari pemeriksaan biasa karena semuanya terlihat sehat.
+
+Efek sampingnya `/running-man/detail` tidak bisa dipakai berdampingan dengan `running-man.vue` sebagai beranda, karena satu-satunya cara menaruh berkas di bawah `/running-man` adalah lewat folder yang namanya `running-man`. Dua halaman itu dipisahkan oleh `(running-man)/(detail)/` dan kolom `detail` di `useMiddleSlot.ts`.
+
+### Halaman yang bukan punya item navbar sendiri
+
+Tetesan navbar dihitung dari path, dengan dua pengecualian: halaman beranda tidak mewarisi apa pun, dan setiap item juga menyalakan halaman lengkap yang dimilikinya.
+
+Halaman beranda perlu dikecualikan karena `/id`, `/en`, dan `/ko` adalah awalan dari setiap path di locale-nya. Kalau tidak dikecualikan, `/id/settings` ikut menyalakan tetesan Beranda — bukan hanya slot tengah, tapi setiap item.
+
+Kolom `detail` di `useMiddleSlot.ts` ada karena Running Man punya dua halaman terpisah: `/running-man` dan `/detail`. Halaman detail tidak ada di bawah `/running-man`, jadi tidak bisa mewarisi lewat path. Hubungannya karena itu dinyatakan lewat nama route, bukan lewat path.
 
 ## Konvensi komponen
 
@@ -438,6 +469,31 @@ Classes berikut sudah disiapkan di `main.css`. Pakai ulang, jangan tulis ulang a
 | `.ganda` | Deretan elemen sejajar |
 
 Kelas di atas disiapkan sebagai pustaka, dan dipakai ulang tanpa ditulis ulang. `.konten` dipakai di Settings, Running Man, dan Cari; `.input` dipakai di Cari. Sisanya masih menunggu komponen pertama yang membutuhkannya — jangan dihapus hanya karena belum terpakai. Hapus kalau memang sudah dipastikan tidak akan dipakai.
+
+`.kartu` menyertakan `:hover` yang menebalkan garis, karena `.kartu` selalu dipakai untuk permukaan yang punya tujuan. Permukaan yang tidak bisa diklik ke mana pun — kartu identitas di Profil, kartu tayang di beranda Running Man — perlu `:hover` itu dimatikan, kalau tidak permukaannya akan terlihat bisa diklik padahal tidak ada yang terjadi kalau diklik. Cara mengematikannya satu baris per permukaan:
+
+```css
+.acara:hover,
+.jadwal:hover {
+  border-color: var(--garis-halus);
+}
+```
+
+### Menyesuaikan ukuran ikon
+
+Ukuran ikon langsung lewat `font-size` pada `<Icon>`, dan kelas ditaruh di elemennya sendiri:
+
+```vue
+<Icon name="lucide:clock" class="meta__ikon" aria-hidden="true" />
+```
+
+```css
+.meta__ikon {
+  font-size: 0.875rem;
+}
+```
+
+Jangan menulis `.meta__butir :deep(svg)`. Bentuk itu tidak pernah cocok: `@nuxt/icon` merender ikon sebagai `<span class="iconify">` dan menggambarnya lewat mask CSS, bukan elemen `<svg>`. Atribut scope sudah menempel ke elemen akar komponen, jadi kelas yang ditaruh di `<Icon>` langsung mengenai — dan tetap mengenai kalau mode render modul diganti ke `svg` nanti.
 
 ### Menambah warna baru
 

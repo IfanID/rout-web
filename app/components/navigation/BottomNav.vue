@@ -22,6 +22,58 @@ const Tautan = resolveComponent('NuxtLink')
    tidak akan dianggap sama. */
 const tanpaSlash = (p: string) => p.replace(/\/$/, '')
 
+/* Path halaman beranda untuk locale yang sedang aktif.
+
+   `/id`, `/en`, atau `/ko`. Dipakai oleh `milik` di bawah untuk
+   menghentikan pewarisan tetesan di titik yang salah. */
+const beranda = localePath('index')
+
+/* Apakah path yang sedang dibuka termasuk bagian dari sebuah item
+ * navbar: berandanya sendiri, halaman anaknya, atau salah satu
+ * halaman lain di bagiannya.
+ *
+ * Ketiga hal ini memang satu kesatuan. Slot tengah mewakili bagian
+ * Running Man, dan bagian itu punya empat halaman yang tidak saling
+ * menimpa: beranda di `/running-man`, isi lengkap di `/detail`, daftar
+ * episode di `/episode`, dan halaman menonton di `/episode/streaming`.
+ * Kalau hanya dibandingkan sama persis dengan berandanya, tetesan
+ * navbar ikut hilang tepat ketika orang sedang membaca halaman-halaman
+ * itu — padahal tidak ada item lain yang bisa mewakili bagian itu.
+ *
+ * Routing berbasis file menjawab why halaman-halaman itu tidak bisa
+ * dianggap anak dari berandanya lewat path: satu-satunya cara meletakkan
+ * file di bawah `/running-man` adalah lewat folder yang namanya
+ * `running-man`, dan folder itu lalu bertabrakan dengan `running-man.vue`
+ * yang bernama sama di direktori yang sama. Nuxt menyatukan keduanya,
+ * route `/running-man/detail` tetap terbentuk tapi yang dirender adalah
+ * beranda. Karena itu hubungan ini dinyatakan lewat nama route di kolom
+ * `dalam`, bukan lewat path.
+ *
+ * Warisan path berhenti di halaman beranda, dan ini bukan sekadar
+ * biaya tambahan: `/id`, `/en`, dan `/ko` adalah awalan dari setiap
+ * path di locale-nya. Kalau beranda ikut mewarisi path di bawahnya,
+ * semua halaman — Pengaturan, Cari, Profil, semuanya — akan menyalakan
+ * tetesan Beranda. Beranda memang tidak punya halaman anak, jadi tidak
+ * ada yang perlu diwariskan ke sana.
+ *
+ * Garis slash di akhir awalan itu wajib. Tanpa itu, `/id/running`
+ * ikut terhitung milik `/id/running-man`, karena awalan hurufnya sama. */
+function milik(path: string, target: string, halamanLain: readonly string[]) {
+  const dari = tanpaSlash(path)
+
+  /* `.some`, bukan `includes`: yang dibandingkan adalah hasil
+     `localePath`, yaitu path lengkap untuk locale yang sedang aktif,
+     bukan nama route yang tertulis di `dalam`. */
+  if (halamanLain.some(nama => dari === tanpaSlash(localePath(nama)))) return true
+
+  const ke = tanpaSlash(target)
+
+  if (dari === ke) return true
+  if (ke === beranda) return false
+
+  return dari.startsWith(`${ke}/`)
+}
+
 /* Item search punya dua wajah, dan itu disengaja.
 
    Di halaman lain ia link biasa ke /search, supaya halaman itu
@@ -42,21 +94,23 @@ const diHalamanCari = computed(() =>
 
 /* `ke` adalah nama route, bukan path. Dikosongkan untuk item yang
    halamannya belum ada.
+   `dalam` adalah daftar nama route halaman lain milik item itu, dan
+   hanya diisi slot tengah. Lihat kolom `dalam` di useMiddleSlot.ts.
 
-   Slot tengah ikut aturan yang sama: `ke` diambil dari pintasan
-   yang sedang terpilih, sehingga item ini punya halaman kalau
-   pintasan itu punya halaman, dan tidak punya kalau belum.
+   Slot tengah ikut aturan yang sama: `ke` dan `dalam` diambil dari
+   pintasan yang sedang terpilih, sehingga item ini punya halaman
+   kalau pintasan itu punya halaman, dan tidak punya kalau belum.
 
    `aksi` diisi hanya kalau item ini harus menjalankan sesuatu
    alih-alih melakukan navigasi. Nilai kosong berarti tidak ada
    aksi, dan `tautan` di bawah yang menentukan dia jadi link. */
 const item = computed(() => {
   const daftar = [
-    { nama: t('nav.beranda'), ikon: 'lucide:house', huruf: '', ke: 'index', aksi: '' },
-    { nama: t('nav.cari'), ikon: 'lucide:search', huruf: '', ke: 'search', aksi: diHalamanCari.value ? 'cari' : '' },
-    { nama: label.value, ikon: pintasan.value.ikon, huruf: pintasan.value.huruf, ke: pintasan.value.ke, aksi: '' },
-    { nama: t('nav.pengaturan'), ikon: 'lucide:settings', huruf: '', ke: 'settings', aksi: '' },
-    { nama: t('nav.profil'), ikon: 'lucide:user', huruf: '', ke: 'profile', aksi: '' }
+    { nama: t('nav.beranda'), ikon: 'lucide:house', huruf: '', ke: 'index', dalam: [], aksi: '' },
+    { nama: t('nav.cari'), ikon: 'lucide:search', huruf: '', ke: 'search', dalam: [], aksi: diHalamanCari.value ? 'cari' : '' },
+    { nama: label.value, ikon: pintasan.value.ikon, huruf: pintasan.value.huruf, ke: pintasan.value.ke, dalam: pintasan.value.dalam, aksi: '' },
+    { nama: t('nav.pengaturan'), ikon: 'lucide:settings', huruf: '', ke: 'settings', dalam: [], aksi: '' },
+    { nama: t('nav.profil'), ikon: 'lucide:user', huruf: '', ke: 'profile', dalam: [], aksi: '' }
   ]
 
   /* `tautan` memisahkan dua hal yang tadinya bercampur jadi satu.
@@ -73,15 +127,17 @@ const item = computed(() => {
    Sebelumnya ini `ref(0)`, jadi item pertama menyala terus
    bahkan ketika sedang di halaman lain.
 
+   Dibandingkan lewat `milik`, bukan sama persis, supaya halaman
+   lain di dalam satu item — dan halaman anaknya — tetap menyalakan
+   item itu. Lihat catatan fungsi `milik` di atas.
+
    Dibandingkan lewat path dan bukan route.name, supaya tidak
    bergantung pada cara modul i18n menamai route per locale.
 
    Hasilnya -1 kalau halaman ini memang tidak punya item navbar.
    Tetesan lalu diam di posisi dasar tanpa membesar. */
 const aktif = computed(() =>
-  item.value.findIndex(s =>
-    s.ke ? tanpaSlash(route.path) === tanpaSlash(localePath(s.ke)) : false
-  )
+  item.value.findIndex(s => (s.ke ? milik(route.path, localePath(s.ke), s.dalam) : false))
 )
 
 /* Animasi tetesan baru dinyalakan setelah frame pertama selesai.

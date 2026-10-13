@@ -56,8 +56,8 @@ const KUNCI_SIMPAN = 'slot-tengah:pilihan'
  *  tersebut sudah menyala sebelum pengguna sempat bereaksi. */
 let sudahTerpasang = false
 
-/** Kolom `ikon`, `huruf`, dan `ke` selalu ditulis di semua entri,
- *  walau isinya kosong. Kalau salah satu hanya ada di sebagian
+/** Kolom `ikon`, `huruf`, `ke`, dan `dalam` selalu ditulis di semua
+ *  entri, walau isinya kosong. Kalau salah satu hanya ada di sebagian
  *  entri, PINATASAN diperlakukan sebagai union dari dua bentuk
  *  objek, dan akses kolom itu di sisi yang tidak memilikinya
  *  berhenti jadi error tipe — bukan sekadar undefined saat
@@ -67,6 +67,29 @@ let sudahTerpasang = false
  *  tengah di navbar dirender sebagai tombol mati. Saat ini hanya
  *  Running Man yang sudah punya halaman, di
  *  app/pages/(running-man)/running-man.vue.
+ *
+ *  `dalam` berisi nama route halaman-halaman lain milik bagian yang
+ *  sama, bukan halaman turunannya. Running Man punya empat halaman:
+ *  beranda di `/running-man`, isi lengkap di `/detail`, daftar episode
+ *  di `/episode`, dan halaman menonton di `/episode/streaming`.
+ *  Semuanya menyalakan tetesan navbar yang sama, dan tanpa daftar ini
+ *  tidak ada yang menyatakan hubungan itu.
+ *
+ *  Daftar, bukan satu kolom, karena jumlahnya memang lebih dari satu.
+ *  Kalau hanya ada satu halaman tambahan, daftar ini tetap satu
+ *  elemen — dan saat halaman kedua menyusul, tidak ada kolom baru
+ *  yang harus ditambahkan ke semua entri.
+ *
+ *  Yang ditulis di sini SELALU nama route, bukan bagian URL.
+ *  `/episode/streaming` bernama route `episode-streaming` — folder dan
+ *  file-nya disambung dengan tanda hubung, bukan garis miring.
+ *
+ *  Nama route dan URL di sini bisa berbeda. `detail` di
+ *  `(running-man)/(detail)/detail.vue` menghasilkan URL `/detail` dan
+ *  nama route `detail` sekaligus, karena kedua route group-nya
+ *  diabaikan. Kalau salah satu group itu dilepas, URL-nya jadi
+ *  `/detail/detail` sementara nama route tetap `detail` — jadi yang
+ *  ditulis di kolom ini selalu nama route, bukan URL.
  *
  *  `as const` bukan gaya penulisan. Tanpa itu `label` melebar jadi
  *  `string` dan pemanggilan `t()` ditolak, karena `t` dikunci ke
@@ -80,10 +103,10 @@ let sudahTerpasang = false
 const PINATASAN = [
   // Mark huruf R. Bukan nama ikon, jadi butuh jalur render sendiri
   // dan tidak boleh ikut diterjemahkan.
-  { id: 'running-man', ikon: '', huruf: 'R', label: 'Running Man', terjemah: false, ket: 'slot.running_man', ke: 'running-man' },
-  { id: 'favorit', ikon: 'lucide:star', huruf: '', label: 'nav.favorit', terjemah: true, ket: 'slot.favorit', ke: '' },
-  { id: 'tersimpan', ikon: 'lucide:bookmark', huruf: '', label: 'nav.tersimpan', terjemah: true, ket: 'slot.tersimpan', ke: '' },
-  { id: 'aktivitas', ikon: 'lucide:activity', huruf: '', label: 'nav.aktivitas', terjemah: true, ket: 'slot.aktivitas', ke: '' }
+  { id: 'running-man', ikon: '', huruf: 'R', label: 'Running Man', terjemah: false, ket: 'slot.running_man', ke: 'running-man', dalam: ['detail', 'episode', 'episode-streaming'] },
+  { id: 'favorit', ikon: 'lucide:star', huruf: '', label: 'nav.favorit', terjemah: true, ket: 'slot.favorit', ke: '', dalam: [] },
+  { id: 'tersimpan', ikon: 'lucide:bookmark', huruf: '', label: 'nav.tersimpan', terjemah: true, ket: 'slot.tersimpan', ke: '', dalam: [] },
+  { id: 'aktivitas', ikon: 'lucide:activity', huruf: '', label: 'nav.aktivitas', terjemah: true, ket: 'slot.aktivitas', ke: '', dalam: [] }
 ] as const
 
 export type Shortcut = (typeof PINATASAN)[number]
