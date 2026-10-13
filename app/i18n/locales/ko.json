@@ -3,6 +3,16 @@
     "judul": "Respawn Outbase",
     "tagline": "잃어버린 모든 것을, 한 번의 리스폰으로."
   },
+  "cari": {
+    "judul": "검색",
+    "panel": "검색창",
+    "petunjuk": "검색 아이콘을 눌러 검색을 여세요",
+    "temu": "{kueri} 검색 결과 {jumlah}개",
+    "tak_ada": "{kueri} 검색 결과가 없습니다",
+    "label_input": "검색어",
+    "placeholder": "검색어 입력",
+    "tutup": "닫기"
+  },
   "pengaturan": {
     "judul": "설정",
     "slot": "가운데 슬롯",

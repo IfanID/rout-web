@@ -3,6 +3,16 @@
     "judul": "Respawn Outbase",
     "tagline": "Everything you lost, one respawn away."
   },
+  "cari": {
+    "judul": "Search",
+    "panel": "Search",
+    "petunjuk": "Tap the Search icon to open search",
+    "temu": "{jumlah} results for {kueri}",
+    "tak_ada": "No results for {kueri}",
+    "label_input": "Search keyword",
+    "placeholder": "Type a keyword",
+    "tutup": "Close"
+  },
   "pengaturan": {
     "judul": "Settings",
     "slot": "Middle slot",

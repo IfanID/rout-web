@@ -3,6 +3,16 @@
     "judul": "Respawn Outbase",
     "tagline": "Semua yang kamu kehilangan, satu respawn lagi."
   },
+  "cari": {
+    "judul": "Cari",
+    "panel": "Pencarian",
+    "petunjuk": "Ketuk ikon Cari untuk membuka pencarian",
+    "temu": "{jumlah} hasil untuk {kueri}",
+    "tak_ada": "Tidak ada hasil untuk {kueri}",
+    "label_input": "Kata kunci pencarian",
+    "placeholder": "Ketik kata kunci",
+    "tutup": "Tutup"
+  },
   "pengaturan": {
     "judul": "Pengaturan",
     "slot": "Slot tengah",

@@ -180,7 +180,7 @@ const terpilih = computed(() =>
 }
 
 .slot__layar::backdrop {
-  background: rgb(0 0 0 / 60%);
+  background: var(--tirai);
 }
 
 /* Lebarnya dilebarkan dari 28rem ke 34rem karena isi per kartu
@@ -195,7 +195,7 @@ const terpilih = computed(() =>
   background: var(--latar-naik-3);
   border: 1px solid var(--garis-sedang);
   border-radius: var(--radius-besar);
-  box-shadow: 0 24px 64px rgb(0 0 0 / 50%);
+  box-shadow: var(--bayang-panel);
   overflow: hidden;
 }
 

@@ -6,31 +6,68 @@ const route = useRoute()
 // Slot tengah: satu-satunya item yang isinya bisa diganti pemakai.
 const { pintasan, label } = useMiddleSlot()
 
+// Panel pencarian. Yang dipakai hanya membuka panel dan menulis
+// keadaan terbukanya ke aria-expanded.
+const { terbuka: cariTerbuka, buka: bukaCari } = useSearchOverlay()
+
 /* NuxtLink dirender lewat `:is`, bukan sebagai tag, karena tiap
    item bisa berupa link atau tombol tergantung apakah halamannya
-   sudah ada. resolveComponent dipanggil eksplisit supaya tidak
+   sudah ada — atau apakah item itu menjalankan aksi, bukan
+   navigasi. resolveComponent dipanggil eksplisit supaya tidak
    bergantung pada resolusi string saat runtime. */
 const Tautan = resolveComponent('NuxtLink')
-
-/* `ke` adalah nama route, bukan path. Dikosongkan untuk item yang
-   halamannya belum ada — nilai kosong itulah yang membuat item itu
-   dirender sebagai tombol mati, bukan link.
-
-   Slot tengah ikut aturan yang sama: `ke` diambil dari pintasan
-   yang sedang terpilih, sehingga item ini jadi link kalau
-   pintasan itu punya halaman, dan tombol mati kalau belum. */
-const item = computed(() => [
-  { nama: t('nav.beranda'), ikon: 'lucide:house', huruf: '', ke: 'index' },
-  { nama: t('nav.cari'), ikon: 'lucide:search', huruf: '', ke: 'search' },
-  { nama: label.value, ikon: pintasan.value.ikon, huruf: pintasan.value.huruf, ke: pintasan.value.ke },
-  { nama: t('nav.pengaturan'), ikon: 'lucide:settings', huruf: '', ke: 'settings' },
-  { nama: t('nav.profil'), ikon: 'lucide:user', huruf: '', ke: 'profile' }
-])
 
 /* Slash di ujung dibuang sebelum dibandingkan: satu sisi bisa
    memberikannya dan sisi lain tidak, sehingga "/id" dan "/id/"
    tidak akan dianggap sama. */
 const tanpaSlash = (p: string) => p.replace(/\/$/, '')
+
+/* Item search punya dua wajah, dan itu disengaja.
+
+   Di halaman lain ia link biasa ke /search, supaya halaman itu
+   tetap punya pintu masuk dari navbar.
+
+   Sudah berada di /search, tautan itu tidak lagi berguna — kita
+   sudah ada di sana. Yang ditekan saat itu adalah membuka panel,
+   jadi item ini berubah jadi tombol biasa.
+
+   `ke` sengaja TIDAK dikosongkan waktu itu. `ke` yang kosong dibaca
+   `aktif` di bawah sebagai "tidak punya halaman", dan tetesan air
+   akan hilang tepat ketika pengguna sedang berada di halaman
+   search. Penentuan <a> atau <button> karena itu dipindah ke
+   field turunan `tautan` di bawah. */
+const diHalamanCari = computed(() =>
+  tanpaSlash(route.path) === tanpaSlash(localePath('search'))
+)
+
+/* `ke` adalah nama route, bukan path. Dikosongkan untuk item yang
+   halamannya belum ada.
+
+   Slot tengah ikut aturan yang sama: `ke` diambil dari pintasan
+   yang sedang terpilih, sehingga item ini punya halaman kalau
+   pintasan itu punya halaman, dan tidak punya kalau belum.
+
+   `aksi` diisi hanya kalau item ini harus menjalankan sesuatu
+   alih-alih melakukan navigasi. Nilai kosong berarti tidak ada
+   aksi, dan `tautan` di bawah yang menentukan dia jadi link. */
+const item = computed(() => {
+  const daftar = [
+    { nama: t('nav.beranda'), ikon: 'lucide:house', huruf: '', ke: 'index', aksi: '' },
+    { nama: t('nav.cari'), ikon: 'lucide:search', huruf: '', ke: 'search', aksi: diHalamanCari.value ? 'cari' : '' },
+    { nama: label.value, ikon: pintasan.value.ikon, huruf: pintasan.value.huruf, ke: pintasan.value.ke, aksi: '' },
+    { nama: t('nav.pengaturan'), ikon: 'lucide:settings', huruf: '', ke: 'settings', aksi: '' },
+    { nama: t('nav.profil'), ikon: 'lucide:user', huruf: '', ke: 'profile', aksi: '' }
+  ]
+
+  /* `tautan` memisahkan dua hal yang tadinya bercampur jadi satu.
+     `ke` menjawab "halaman mana", `tautan` menjawab "dirender
+     sebagai link atau sebagai tombol".
+
+     Item yang `ke`-nya kosong dan tidak punya aksi tetap jadi
+     tombol mati — itu slot tengah yang pintasan yang dipilih
+     belum punya halaman. */
+  return daftar.map(s => ({ ...s, tautan: Boolean(s.ke) && !s.aksi }))
+})
 
 /* Item aktif dibaca dari route, bukan dari klik terakhir.
    Sebelumnya ini `ref(0)`, jadi item pertama menyala terus
@@ -78,17 +115,25 @@ onMounted(() => {
            elemen ini saudara satu sama lain. Itu juga alasan
            `<component>` dipakai di sini: ia merender <a> atau
            <button> langsung, tanpa membungkus elemen lain yang
-           bisa merusak urutan saudara. -->
+           bisa merusak urutan saudara.
+
+           Penentuan link atau tombol membaca `tautan`, bukan
+           `ke`. Item search di halaman /search punya `ke` yang
+           tetap terisi supaya tetesannya tidak hilang, tapi
+           dirender sebagai tombol. -->
       <component
-        :is="satu.ke ? Tautan : 'button'"
+        :is="satu.tautan ? Tautan : 'button'"
         v-for="(satu, i) in item"
         :key="i"
-        :to="satu.ke ? localePath(satu.ke) : undefined"
-        :type="satu.ke ? undefined : 'button'"
-        :disabled="!satu.ke"
+        :to="satu.tautan ? localePath(satu.ke) : undefined"
+        :type="satu.tautan ? undefined : 'button'"
+        :disabled="!satu.tautan && !satu.aksi"
         class="nav__link"
         :class="{ 'active-link': i === aktif }"
         :aria-current="i === aktif ? 'page' : undefined"
+        :aria-haspopup="satu.aksi ? 'dialog' : undefined"
+        :aria-expanded="satu.aksi ? cariTerbuka : undefined"
+        @click="satu.aksi ? bukaCari() : undefined"
       >
         <!-- Mark ikon atau huruf, keduanya lewat satu komponen
              supaya kotak dan tipografinya hanya ada di satu
@@ -119,10 +164,6 @@ onMounted(() => {
            dipakai rumus posisi tidak ikutsinkron. Dengan menulis
            ulang path-nya, setiap titik benar-benar pindah dan
            bentuknya tetap simetris.
-
-           Ellipse tidak berubah bentuk: cx=47 cy=28 rx=24 ry=28
-           sudah simetris terhadap titik tengah, jadi rotasi 180°
-           menghasilkan bentuk yang sama.
 
            Lebar 94px dan warnanya tetap sama seperti aslinya. -->
       <svg
@@ -197,7 +238,7 @@ onMounted(() => {
   background-color: var(--latar-naik-2);
   /* Ruang gesture bar di perangkat yang punya. */
   padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -8px 32px rgb(0 0 0 / 40%);
+  box-shadow: var(--bayang-navbar);
   /* Batas atas membulat, bawah menempel tepi layar. */
   border-radius: var(--radius-besar) var(--radius-besar) 0 0;
   border-top: 1px solid var(--garis-halus);
@@ -306,12 +347,30 @@ onMounted(() => {
   cursor: default;
 }
 
-/* Fokus keyboard tetap dikasih garis. Menjamanya jadi buta. */
-.nav__link:focus-visible {
-  outline: 2px solid var(--aksen-utama);
-  outline-offset: -2px;
-  border-radius: var(--radius-sedang);
-}
+/* TIDAK ada aturan `:focus-visible` di sini, dan itu disengaja.
+
+   Semula ada garis cyan 2px di sekitar item yang sedang fokus.
+   Garis itu benar secara aksesibilitas — tanpa penanda seperti
+   ini, orang yang navigasi dengan keyboard tidak tahu sedang di
+   mana posisinya.
+
+   Tapi garis itu muncul hanya setelah interaksi keyboard, bukan
+   setelah ketukan. Ketika panel pencarian ditutup, fokus
+   dikembalikan ke ikon search, dan saat itulah garisnya muncul —
+   lalu bertahan sampai halaman di-reload.
+
+   Bentuknya kotak dan warnanya cyan yang sama dengan tetesan,
+   jadi bagi yang tidak tahu asalnya, ia terbaca bukan sebagai
+   penanda fokus, melainkan sebagai bagian dari tetesan yang
+   berubah bentuk.
+
+   Dihapus atas permintaan: tampilan lebih bersih, dan tetesan
+   tidak lagi berubah-ubah bentuk sendiri.
+
+   Kalau nanti penanda fokus dibutuhkan lagi, jangan pakai
+   `outline` penuh seperti sebelumnya. Yang lebih halus: gerakkan
+   hanya tetesannya ke item yang fokus, atau beri warna teks yang
+   lebih terang. Keduanya tidak menutupi bentuk tetesan. */
 
 /* Mark item.
 

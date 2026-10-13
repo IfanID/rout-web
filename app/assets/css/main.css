@@ -100,11 +100,36 @@
   --fokus-cincin: var(--cyan-400);
   --fokus-cincin-luar: var(--latar-dasar);
 
+  /* Tirai — latar yang menutupi halaman di belakang panel yang
+     mengambang. Dipakai bersama `backdrop-filter: blur()` supaya
+     teks di bawahnya tetap terbaca buram, bukan sekadar gelap.
+
+     Dipisah dari --latar-* karena ini bukan permukaan. Tidak ada
+     yang "naik" di balik tirai — semuanya turun. */
+  --tirai: rgb(0 0 0 / 60%);
+
   /* Radius, bayangan, transisi — bukan warna, tapi milik dasar. */
   --radius-kecil: 4px;
   --radius-sedang: 8px;
   --radius-besar: 12px;
   --transisi: 150ms ease;
+
+  /* Bayangan. Nilainya utuh, bukan hanya warnanya, supaya tiap
+     permukaan yang elevasinya sama tidak menulis sendiri angka
+     yang sedikit berbeda.
+
+     Bayangan tidak sama rata antara satu permukaan dengan yang
+     lain, dan itu memang disengaja — yang menentukan adalah
+     seberapa jauh permukaan itu melayang dari isinya:
+       - panel besar       → jarak jauh, kabut lebar
+       - navbar            → menempel di bawah, bayang ke atas
+       - kotak kecil       → jarak dekat, kabut sempit
+
+     Memakai `--bayang-panel` untuk kotak kecil menghasilkan
+     bayangan set transparan yang tidak pernah terbaca. */
+  --bayang-panel: 0 24px 64px rgb(0 0 0 / 50%);
+  --bayang-navbar: 0 -8px 32px rgb(0 0 0 / 40%);
+  --bayang-petunjuk: 0 6px 16px rgb(0 0 0 / 45%);
 }
 
 /* ---------- Lapisan 3: Komponen ---------- */
