@@ -1,13 +1,21 @@
 <script setup lang="ts">
 /* Daftar episode Running Man.
  *
- *   /running-man          beranda — kapan tayang
- *   /episode              halaman ini
- *   /episode/streaming    menonton
+ *   /running-man                       beranda — kapan tayang
+ *   /running-man/episode               halaman ini
+ *   /running-man/episode/streaming     menonton
  *
- * Folder `episode/` bukan route group — ia tidak ditulis berkurung,
- * jadi ia masuk ke URL. Karena itu halaman ini beralamat `/episode`,
- * bukan `/episode/index`.
+ * Folder `episode/` di atasnya TIDAK berkurung, jadi ia masuk ke URL.
+ * Karena itu halaman ini beralamat `/running-man/episode`, bukan
+ * `/running-man`.
+ *
+ * Berkasnya `index.vue`, bukan `episode.vue`. Nama route halaman ini
+ * `running-man-episode` — `index` di ujung nama route dibuang, jadi
+ * hanya nama folder yang ikut. Kalau berkasnya diganti `episode.vue`,
+ * URL-nya tetap `/running-man/episode` tapi nama route-nya menjadi
+ * `running-man-episode-episode`, dan route halaman menonton di bawahnya
+ * ikut berubah — jadi semua pemanggilan `localePath` yang menyebutnya
+ * harus ditulis ulang.
  *
  * Teksnya ditulis apa adanya di template, dalam Bahasa Indonesia,
  * tanpa menambah kunci locale baru — aturan teks dummy di AGENTS.md.
@@ -60,14 +68,14 @@ const tampil = computed(() => episode.slice(0, JUMLAH_TAMPIL))
          membacakan nomor yang sama dua kali: sekali dari posisi dalam
          daftar, sekali dari lencana di dalamnya.
 
-         Setiap baris menuju /episode/streaming — daftar ini dibuat
-         untuk itu. Semuanya masih menuju halaman yang sama karena
-         belum ada halaman per episode; begitu tiap episode punya
-         halamannya sendiri, `localePath('episode-streaming')` di sini
-         cukup diganti dengan route yang membawa nomornya. -->
+         Setiap baris menuju /running-man/episode/streaming — daftar ini
+         dibuat untuk itu. Semuanya masih menuju halaman yang sama
+         karena belum ada halaman per episode; begitu tiap episode punya
+         halamannya sendiri, `localePath('running-man-episode-streaming')`
+         di sini cukup diganti dengan route yang membawa nomornya. -->
     <ul class="episode__daftar">
       <li v-for="satu in tampil" :key="satu.nomor" class="episode__sel">
-        <NuxtLink :to="localePath('episode-streaming')" class="episode__butir">
+        <NuxtLink :to="localePath('running-man-episode-streaming')" class="episode__butir">
           <!-- Thumbnail belum ada. Kotak 16:9 dengan nomor di
                dalamnya adalah pengganti sementara yang jujur — ia
                menunjukkan di mana gambar akan berada, dan nomor yang
@@ -183,8 +191,8 @@ const tampil = computed(() => episode.slice(0, JUMLAH_TAMPIL))
    Permukaannya ditulis sendiri, bukan memakai `.kartu`, karena
    `.kartu` menyertakan `:hover` yang menebalkan garis tanpa memberi
    tahu arahnya. Di sini hover-nya sudah punya arti sendiri: baris ini
-   memang menuju /episode/streaming, dan warnanya dinaikkan supaya
-   tidak menabrakkan hover kartu yang tidak punya tujuan.
+   memang menuju /running-man/episode/streaming, dan warnanya dinaikkan
+   supaya tidak menabrakkan hover kartu yang tidak punya tujuan.
 
    `color: inherit` menimpa aturan `a` global yang memberi warna
    aksen ke semua tautan; warna teks di dalam baris sudah ditentukan

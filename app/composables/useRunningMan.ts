@@ -19,15 +19,13 @@
 /* Semua kelompok data ditulis sebagai objek yang kuncinya adalah
    id, bukan larik.
 
-   Alasannya halaman ini dipakai di dua halaman, dan larik hanya bisa
-   dibaca lewat angka (`jadwal[1]`). Angka itu diam-diam jadi rujukan
-   yang rapuh: menggeser satu baris di daftar beranda ikut mengubah
-   isi halaman detail tanpa ada yang menyadarinya. Dengan kunci,
-   kedua halaman menulis `jadwal.jam.nilai` dan maksudnya kelihatan
-   di teksnya sendiri.
+   Alasannya larik hanya bisa dibaca lewat angka. Angka itu diam-diam
+   jadi rujukan yang rapuh: menggeser satu baris ikut mengubah isi
+   tempat lain tanpa ada yang menyadarinya. Dengan kunci, maksudnya
+   kelihatan di teksnya sendiri.
 
    `v-for` tetap bisa membaca bentuk ini — `v-for="(satu, id) in
-   jadwal"` — jadi tidak ada biaya dari pilihan ini. */
+   daftar"` — jadi tidak ada biaya dari pilihan ini. */
 
 /** Identitas acara, tampilannya di kartu depan beranda.
  *
@@ -64,27 +62,6 @@ const ACARA = {
   }
 }
 
-/** Jadwal tetap: pola yang berulang tiap minggu dan tidak pernah
- *  berubah.
- *
- *  Tiap baris menyimpan ikonnya. Jadwal ini dibaca berulang, jadi
- *  ikon membuat orang mengenali barisnya sebelum sempat membaca
- *  katanya — "hari" dan "jam" bisa tertukar di layar sempit kalau
- *  semuanya cuma teks. Ikon ikut datanya, bukan ditulis di halaman,
- *  supaya halaman tidak perlu tahu baris mana yang pakai ikon apa. */
-const JADWAL = {
-  /* Jam 16.50 KST ditulis jadi 17.50 WIB. KST satu jam di depan
-     WIB, dan halaman ini ditulis untuk pembaca Indonesia —
-     menampilkan jam Korea membuat orang salah menghitung kapan
-     acaranya mulai. */
-  hari: { ikon: 'lucide:calendar-days', label: 'Hari', nilai: 'Minggu' },
-  jam: { ikon: 'lucide:clock', label: 'Jam', nilai: '17.50 WIB' },
-  pemancar: { ikon: 'lucide:tv', label: 'Pemancar', nilai: 'SBS' },
-  /* Hanya Netflix. Platform streaming lain tidak tercatat di sumber,
-     jadi menambahkannya berarti mengarang. */
-  streaming: { ikon: 'lucide:play', label: 'Streaming', nilai: 'Netflix' }
-}
-
 /** Episode yang belum tayang.
  *
  *  Sengaja dipisah dari `episode` di bawah, bukan digabung jadi
@@ -98,12 +75,27 @@ const BERIKUTNYA = {
 }
 
 const TENTANG = {
-  ringkas:
-    'Running Man adalah acara variety show dari Korea Selatan yang tayang sejak 2010 di SBS. Tujuh cast bergantian mengerjakan misi dan lomba yang hampir selalu berakhir tanpa pemenang yang jelas. Di balik semua kekacauan itu, tiap episode selalu punya satu tim dengan satu target yang harus diselesaikan lebih dulu.',
-  meta: {
-    genre: { ikon: 'lucide:clapperboard', nilai: 'Game show, variety, komedi' },
-    produksi: { ikon: 'lucide:building-2', nilai: 'SBS, SangSang, Urban Works' },
-    sutradara: { ikon: 'lucide:video', nilai: 'Kim Sol-maro' }
+  /* Deskripsi resmi SBS, disalin dari meta tag halaman programnya:
+     *
+     *   https://m.programs.sbs.co.kr/enter/runningman/main
+     *   <meta name="description">
+     *
+     * Teks Korea aslinya diawali "[기획의도 by 유재석]", ditulis SBS
+   * sendiri, lalu diterjemahkan ke sini.
+   *
+   * Dulu blok ini punya genre, nama produser, dan sutradara. Ketiganya
+   * DIHAPUS, bukan karena salah, tapi karena tidak ada di situs resmi:
+   * halaman `about` SBS kosong, dan endpoint publiknya
+   * (`apis.sbs.co.kr/program-api/1.0/cast/runningman/67779`) hanya
+   * memuat data cast. Kalau tidak ada di sana, claims itu tidak punya
+   * sumber yang bisa ditunjuk.
+   *
+   * Objek bernomor, bukan satu string panjang, supaya tiap paragraf
+   * jadi elemen terpisah di halaman. */
+  ringkas: {
+    "1": "[Rencana produksi oleh Yoo Jae-suk (유재석)]",
+    "2": "Di tengah masa ketika program variety terus menghilang dari layar, ini adalah salah satu program variety terbesar Korea yang selama lebih dari sepuluh tahun bertanggung jawab atas Minggu malam.",
+    "3": "Ciri program ini adalah banyaknya bintang dan anggota yang mengerjakan misi bersama, dan dari semua unsur yang sebuah variety show punya, program ini hanya memusatkan perhatian pada satu: tertawa."
   }
 }
 
@@ -121,10 +113,18 @@ const STATISTIK = {
      dan membandingkan angka dengan string kebetulan berhasil karena
      bahasa membenarkannya memaksa ke angka — bukan karena itu
      benar-benar angka. */
+  /* Hanya dua angka ini yang tidak sudah tampil di kartu depan.
+
+     Dulu ada empat. "80–95" dan "16 tahun tayang" dihapus karena
+     kartu depan sudah menuliskannya lebih persis — "80–95 menit"
+     dan "Tayang sejak 2010". Dua bentuk dari fakta yang sama di
+     satu halaman cuma bikin pembaca mengira itu dua informasi
+     berbeda, dan yang lebih pendek selalu kalah benar.
+
+     Kalau nanti muncul angka yang juga sudah ada di kartu, jangan
+     ditaruh di sini. */
   episode: { ikon: 'lucide:tv', nilai: '822', label: 'Episode', jumlah: 822 },
-  cast: { ikon: 'lucide:users', nilai: '7', label: 'Cast tetap', jumlah: 7 },
-  durasi: { ikon: 'lucide:clock', nilai: '80–95', label: 'Menit' },
-  usia: { ikon: 'lucide:calendar-range', nilai: '16', label: 'Tahun tayang', jumlah: 16 }
+  cast: { ikon: 'lucide:users', nilai: '7', label: 'Cast tetap', jumlah: 7 }
 }
 
 /** Episode yang sudah tayang, terbaru di atas.
@@ -161,7 +161,6 @@ const EPISODE = [
 export function useRunningMan() {
   return {
     acara: ACARA,
-    jadwal: JADWAL,
     berikutnya: BERIKUTNYA,
     tentang: TENTANG,
     statistik: STATISTIK,

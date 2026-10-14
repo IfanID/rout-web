@@ -2,15 +2,44 @@
 /* Beranda Running Man: satu kartu — tayang berikutnya — dan dua
  * perintah ke halaman lain.
  *
- *   /running-man          halaman ini
- *   /detail               informasi acara
- *   /episode              daftar episode
- *   /episode/streaming    menonton
+ *   /running-man                       halaman ini
+ *   /running-man/detail                informasi acara
+ *   /running-man/episode               daftar episode
+ *   /running-man/episode/streaming     menonton
+ *
+ * Berkasnya `index.vue`, bukan `running-man.vue`, dan itu syarat,
+ * bukan gaya penulisan. Berkas `running-man.vue` tidak boleh berdiri
+ * bersama folder `running-man/` yang bernama sama: kalau keduanya ada,
+ * route di bawah folder itu menjadi CHILD dari route beranda, bukan
+ * saudara. Vue Router merender parent lebih dulu dan hanya menampilkan
+ * child lewat `<router-view>` milik parent — dan beranda ini tidak punya
+ * satu pun. Gejalanya bukan 404, bukan peringatan di console, dan
+ * semua tautannya tetap berfungsi: `/running-man/detail` hanya membuka
+ * isi beranda. Bug yang lolos dari pemeriksaan biasa.
+ *
+ * Dengan `index.vue`, nama route mentahnya `running-man/index`, bukan
+ * `running-man`, sehingga pencarian parent di `toVueRouter4` gagal
+ * cocok dan `detail` tetap jadi saudara dengan path absolut. Nama route
+ * akhirnya tetap `running-man`, karena `index` di ujung nama route
+ * dibuang.
+ *
+ * Tetesan navbar diwarisi lewat awalan path `/running-man/`, jadi
+ * kolom `dalam` di useMiddleSlot.ts dibiarkan kosong untuk bagian ini.
+ * Lihat catatan fungsi `milik` di BottomNav.vue.
  *
  * Yang tampil di sini sengaja cuma satu kartu, karena orang yang
  * masuk lewat slot tengah navbar sedang menanyakan satu hal: "tayang
  * lagi kapan?". Jadwal, tentang acara, dan statistiknya semuanya
  * ada di halaman detail.
+ *
+ * Di bawahnya ada bagian klip — tiga yang terbaru, sisanya di
+ * /running-man/preview. Datanya nyata, diambil dari SBS lewat
+ * /api/running-man/clips.
+ *
+ * Sifatnya berbeda dari kartu di atas: kartu menjawab pertanyaan yang
+ * sudah dibawa orang, klip menawarkan yang belum terpikir olehnya.
+ * Karena itu ia duduk paling bawah, dan jumlahnya dibatasi tiga — daftar
+ * penuh menjawab pertanyaan lain, dan punya halamannya sendiri.
  *
  * Kartu dan tombol sengaja terpisah, bukan kartu yang bisa diketuk
  * seluruhnya. Kalau kartu ikut jadi tautan, isinya jadi dua perintah
@@ -26,9 +55,45 @@
  * acara dari Korea Selatan itu bukan brand Rout dan bukan teks yang
  * perlu diterjemahkan, sama seperti di useMiddleSlot.ts. */
 
+definePageMeta({
+  /* Halaman ini di-mount ulang setiap kali query berubah.
+   *
+   * Tanpa itu, berpindah tab hanya mengganti URL: route-nya sama persis,
+   * jadi Vue Router memakai ulang instance komponennya dan `<script setup>`
+   * tidak dijalankan lagi — datanya tetap milik urutan yang lama, dan
+   * tabelnya terlihat tidak berubah padahal sudah pindah.
+   *
+   * `key` yang ikut `fullPath` membuat setiap query terbaca sebagai halaman
+   * baru bagi Nuxt: setup, pengambilan data, dan pengintai ikut dibuat dari
+   * nol. Halaman daftar punya catatan yang sama. */
+  key: route => route.fullPath
+})
+
 const { acara, berikutnya, statistik } = useRunningMan()
 
 const localePath = useLocalePath()
+
+/* Klip tayang, tiga yang terbaru.
+ *
+ * Datanya nyata, dari SBS lewat /api/running-man/clips — bukan dummy.
+ * Keputusan kenapa tiga dan kenapa diletakkan paling bawah ada di catatan
+ * bagiannya di bawah, bukan di sini.
+ *
+ * Halaman /running-man/preview memakai daftar yang sama persis dari
+ * composable yang sama, jadi berpindah ke sana tidak meminta ulang. */
+const JUMLAH_KLIP = 3
+
+const clips = await useRunningManClips(HALAMAN_BERANDA)
+
+/* `computed` karena `clips` reaktif: `.value`-nya berubah sendiri saat
+ * urutannya diganti, dan bagian ini harus ikut berubah tanpa setup
+ * dijalankan ulang. */
+const klipTampil = computed(() => clips.value.slice(0, JUMLAH_KLIP))
+
+/* Urutan ikut dibawa ke halaman daftar, supaya "Lihat lebih banyak" membuka
+   halaman yang urutannya sama dengan yang sedang dilihat — bukan selalu
+   yang terbaru. */
+const urutan = urutanKlip(useRoute().query.urutan)
 </script>
 
 <template>
@@ -91,12 +156,12 @@ const localePath = useLocalePath()
          membuat orang salah paham tujuan — tiap tombol sudah punya
          ikon dan letaknya jelas. -->
     <div class="tayang__tujuan">
-      <NuxtLink :to="localePath('detail')" class="tombol tombol--utama tayang__tombol">
+      <NuxtLink :to="localePath('running-man-detail')" class="tombol tombol--utama tayang__tombol">
         Semua detail
         <Icon name="lucide:arrow-right" class="tayang__ikon" aria-hidden="true" />
       </NuxtLink>
 
-      <NuxtLink :to="localePath('episode')" class="tombol tombol--sekunder tayang__tombol">
+      <NuxtLink :to="localePath('running-man-episode')" class="tombol tombol--sekunder tayang__tombol">
         <Icon name="lucide:list" class="tayang__ikon" aria-hidden="true" />
         Semua episode
       </NuxtLink>
@@ -115,6 +180,32 @@ const localePath = useLocalePath()
       {{ statistik.episode.nilai }} episode sudah tayang sejak
       {{ acara.sejak }}.
     </p>
+
+    <!-- ===== Klip tayang ========================================= -->
+
+    <!-- Disembunyikan kalau daftarnya kosong. Larik kosong berarti SBS
+         sedang tidak bisa dihubungi atau memang belum punya klip baru,
+         dan menampilkan judul dengan isi kosong di bawahnya terlihat
+         seperti ada isinya yang belum termuat. -->
+    <section v-if="klipTampil.length" class="bagian">
+      <h2 class="bagian__judul">예고보기</h2>
+
+      <PreviewSort />
+
+      <PreviewList :daftar="klipTampil" />
+
+      <!-- Satu-satunya perintah di bagian ini, dan sengaja di bawah
+           daftarnya. Orang yang sudah membaca tiga baris dan ingin
+           sisanya baru menekan ini — dan saat menekannya, dia sudah
+           tahu isinya akan seperti apa. -->
+      <NuxtLink
+        :to="localePath({ name: 'running-man-preview', query: { urutan } })"
+        class="tombol tombol--sekunder lebih"
+      >
+        Lihat lebih banyak
+        <Icon name="lucide:arrow-right" class="tayang__ikon" aria-hidden="true" />
+      </NuxtLink>
+    </section>
   </main>
 </template>
 
@@ -266,6 +357,21 @@ const localePath = useLocalePath()
   margin-top: 1.25rem;
   font-size: 0.8125rem;
   color: var(--teks-lembut);
+}
+
+/* --- Pratinjau ------------------------------------------------ */
+
+/* Tombol "lihat lebih banyak".
+ *
+ * Selebar bagiannya, bukan selebar tulisannya. Ia menutup daftar di
+ * atasnya, dan tombol yang lebih sempit dari daftar itu terbaca
+ * sebagai tambahan pada satu baris, bukan sebagai akhir dari
+ * daftarnya. */
+.lebih {
+  width: 100%;
+  justify-content: center;
+
+  margin-top: 1rem;
 }
 
 /* --- Ikon ---------------------------------------------------- */

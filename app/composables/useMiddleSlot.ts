@@ -66,30 +66,33 @@ let sudahTerpasang = false
  *  `ke` kosong berarti pintasan itu belum punya halaman, jadi item
  *  tengah di navbar dirender sebagai tombol mati. Saat ini hanya
  *  Running Man yang sudah punya halaman, di
- *  app/pages/(running-man)/running-man.vue.
+ *  app/pages/running-man/index.vue.
  *
- *  `dalam` berisi nama route halaman-halaman lain milik bagian yang
- *  sama, bukan halaman turunannya. Running Man punya empat halaman:
- *  beranda di `/running-man`, isi lengkap di `/detail`, daftar episode
- *  di `/episode`, dan halaman menonton di `/episode/streaming`.
- *  Semuanya menyalakan tetesan navbar yang sama, dan tanpa daftar ini
- *  tidak ada yang menyatakan hubungan itu.
+ *  `dalam` berisi nama route halaman-halaman lain yang TIDAK bisa
+ *  mewarisi lewat path, jadi harus disebut satu per satu. Daftar,
+ *  bukan satu kolom, karena jumlahnya bisa lebih dari satu.
  *
- *  Daftar, bukan satu kolom, karena jumlahnya memang lebih dari satu.
- *  Kalau hanya ada satu halaman tambahan, daftar ini tetap satu
- *  elemen — dan saat halaman kedua menyusul, tidak ada kolom baru
- *  yang harus ditambahkan ke semua entri.
+ *  Running Man sekarang TIDAK memakai kolom ini. Semua halamannya
+ *  berada di bawah `/running-man/`, jadi `milik` di BottomNav.vue
+ *  sudah mengenali `/running-man/detail` dan `/running-man/episode/
+ *  streaming` dari awalan path-nya. Kolomnya sengaja dibiarkan kosong
+ *  — mengisinya dengan `running-man-detail` dan friends tetap akan
+ *  bekerja, tapi itu menyatakan hal yang sudah benar tanpa perlu.
  *
- *  Yang ditulis di sini SELALU nama route, bukan bagian URL.
- *  `/episode/streaming` bernama route `episode-streaming` — folder dan
- *  file-nya disambung dengan tanda hubung, bukan garis miring.
+ *  Yang ditulis di `dalam` SELALU nama route, bukan bagian URL. Keduanya
+ *  bisa berbeda: `running-man/episode/streaming.vue` menghasilkan URL
+ *  `/running-man/episode/streaming`, sementara nama route-nya
+ *  `running-man-episode-streaming` karena tiap segmen disambung dengan
+ *  tanda hubung.
  *
- *  Nama route dan URL di sini bisa berbeda. `detail` di
- *  `(running-man)/(detail)/detail.vue` menghasilkan URL `/detail` dan
- *  nama route `detail` sekaligus, karena kedua route group-nya
- *  diabaikan. Kalau salah satu group itu dilepas, URL-nya jadi
- *  `/detail/detail` sementara nama route tetap `detail` — jadi yang
- *  ditulis di kolom ini selalu nama route, bukan URL.
+ *  Nama route juga bisa lebih dari satu jalan. Daftar episode ada di
+ *  `running-man/episode/index.vue` dan bernama route
+ *  `running-man-episode`, karena `index` bukan bagian dari nama route.
+ *  Kalau berkasnya diganti `running-man/episode/episode.vue`, URL-nya
+ *  tetap `/running-man/episode` tapi nama route-nya menjadi
+ *  `running-man-episode-episode` — dan route yang disebut di baris
+ *  sebelumnya ikut berubah, jadi daftar di kolom ini harus ditulis
+ *  ulang seluruhnya.
  *
  *  `as const` bukan gaya penulisan. Tanpa itu `label` melebar jadi
  *  `string` dan pemanggilan `t()` ditolak, karena `t` dikunci ke
@@ -103,7 +106,7 @@ let sudahTerpasang = false
 const PINATASAN = [
   // Mark huruf R. Bukan nama ikon, jadi butuh jalur render sendiri
   // dan tidak boleh ikut diterjemahkan.
-  { id: 'running-man', ikon: '', huruf: 'R', label: 'Running Man', terjemah: false, ket: 'slot.running_man', ke: 'running-man', dalam: ['detail', 'episode', 'episode-streaming'] },
+  { id: 'running-man', ikon: '', huruf: 'R', label: 'Running Man', terjemah: false, ket: 'slot.running_man', ke: 'running-man', dalam: [] },
   { id: 'favorit', ikon: 'lucide:star', huruf: '', label: 'nav.favorit', terjemah: true, ket: 'slot.favorit', ke: '', dalam: [] },
   { id: 'tersimpan', ikon: 'lucide:bookmark', huruf: '', label: 'nav.tersimpan', terjemah: true, ket: 'slot.tersimpan', ke: '', dalam: [] },
   { id: 'aktivitas', ikon: 'lucide:activity', huruf: '', label: 'nav.aktivitas', terjemah: true, ket: 'slot.aktivitas', ke: '', dalam: [] }

@@ -1,17 +1,19 @@
 <script setup lang="ts">
 /* Halaman menonton satu episode.
  *
- *   /running-man          beranda — kapan tayang
- *   /episode              daftar episode
- *   /episode/streaming    halaman ini
+ *   /running-man                       beranda — kapan tayang
+ *   /running-man/episode               daftar episode
+ *   /running-man/episode/streaming     halaman ini
  *
- * Folder `episode/` di atasnya bukan route group — ia tidak ditulis
- * berkurung, jadi ia masuk ke URL. Karena itu halaman ini beralamat
- * `/episode/streaming`, bukan `/streaming`.
+ * Folder `episode/` di atasnya tidak ditulis berkurung, jadi ia masuk
+ * ke URL. Karena itu halaman ini beralamat
+ * `/running-man/episode/streaming`, bukan `/streaming`.
  *
- * Nama route-nya `episode-streaming`: folder dan file disambung dengan
- * tanda hubung, bukan garis miring. Yang tertulis di kolom `dalam` di
- * useMiddleSlot.ts karena itu nama route-nya, bukan bagian URL.
+ * Nama route-nya `running-man-episode-streaming`: tiap segmen disambung
+ * dengan tanda hubung, bukan garis miring. Kolom `dalam` di
+ * useMiddleSlot.ts kosong untuk Running Man, karena halaman ini sudah
+ * mewarisi tetesan navbar dari awalan path-nya. Lihat catatan fungsi
+ * `milik` di BottomNav.vue.
  *
  * Semuanya masih data contoh dan sengaja dibiarkan begitu. Belum ada
  * sumber video, jadi apa pun yang muncul sebagai angka atau waktu di
@@ -59,7 +61,7 @@ const lain = computed(() => episode.slice(1))
          di dalam bagian episode, dan daftar itu tempat orang ingin
          kembali untuk memilih yang lain — bukan tempat mereka datang
          karena sedang membaca deskripsi acara. -->
-    <NuxtLink :to="localePath('episode')" class="streaming__kembali">
+    <NuxtLink :to="localePath('running-man-episode')" class="streaming__kembali">
       <Icon name="lucide:arrow-left" class="streaming__kembali-ikon" aria-hidden="true" />
       Semua episode
     </NuxtLink>

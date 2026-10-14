@@ -177,7 +177,7 @@ const statistik = [
 /* Bawaan .konten cuma 4rem di bawah, sedangkan navbar bawah
    tetap 72px ditambah env(safe-area-inset-bottom). Tanpa ini
    konten terakhir tertutup navbar. Sama seperti di
-   (settings)/settings.vue, (running-man)/running-man.vue, dan
+   (settings)/settings.vue, running-man/index.vue, dan
    (search)/search.vue. */
 .profil {
   padding-bottom: 10rem;
@@ -347,7 +347,7 @@ const statistik = [
 /* auto-fit, bukan empat kolom tetap. Di layar sempit kolom ketiga menyempit
  * sampai angkanya mulai turun baris, sementara dua kolom masih muat dengan
  * lebar yang sama. Pola ini sama persis dengan yang dipakai di
- * (running-man)/(detail)/detail.vue. */
+ * running-man/detail.vue. */
 .statistik {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));

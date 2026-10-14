@@ -1,22 +1,26 @@
 <template>
   <header class="header">
-    <NuxtLink :to="localePath('index')" class="header__logo">
-      <Icon name="lucide:crosshair" class="header__ikon" />
-      Rout
-    </NuxtLink>
+    <!-- Pembatas lebar. `header` sendiri tetap full-bleed supaya
+         latarnya sampai ke tepi layar. -->
+    <div class="header__isi">
+      <NuxtLink :to="localePath('index')" class="header__logo">
+        <Icon name="lucide:crosshair" class="header__ikon" />
+        Rout
+      </NuxtLink>
 
-    <span
-      ref="wadah"
-      class="header__kanan"
-      :class="{ 'header__kanan--geser': melimpah }"
-    >
-      <span class="header__jejak">
-        <span class="header__potongan">{{ teks }}</span>
-        <span v-if="melimpah" class="header__potongan" aria-hidden="true">
-          {{ teks }}
+      <span
+        ref="wadah"
+        class="header__kanan"
+        :class="{ 'header__kanan--geser': melimpah }"
+      >
+        <span class="header__jejak">
+          <span class="header__potongan">{{ teks }}</span>
+          <span v-if="melimpah" class="header__potongan" aria-hidden="true">
+            {{ teks }}
+          </span>
         </span>
       </span>
-    </span>
+    </div>
   </header>
 </template>
 
@@ -63,18 +67,40 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Latar penuh selebar layar: header menempel di atas, jadi tepinya
+ * harus sampai ke kanan dan kiri. Yang dibatasi hanya isinya —
+ * `--lebar-konten` sama dengan yang dipakai `.konten`, supaya logo
+ * dan judul halaman segaris dengan isi halaman di semua lebar.
+ *
+ * Pembatasnya di dalam `header__isi`, bukan di `.header` sendiri,
+ * supaya latar dan garis bawahnya tetap memenuhi layar. */
 .header {
   position: sticky;
   top: 0;
   z-index: 40;
 
+  /* Padding samping sengaja sama dengan `.konten` supaya isinya segaris
+     persis di semua lebar. Kalau berbeda, di layar sempit logo bergeser
+     beberapa piksel dari isi halaman — kecil, tapi terlihat karena
+     keduanya ada di satu layar. */
+  padding: 0.1875rem 1.5rem;
+  background: var(--latar-naik-1);
+  border-bottom: 1px solid var(--garis-halus);
+}
+
+@media (max-width: 30rem) {
+  .header {
+    padding-inline: 1rem;
+  }
+}
+
+.header__isi {
   display: flex;
   align-items: center;
   gap: 1.25rem;
 
-  padding: 0.1875rem 1.25rem;
-  background: var(--latar-naik-1);
-  border-bottom: 1px solid var(--garis-halus);
+  max-width: var(--lebar-konten);
+  margin-inline: auto;
 }
 
 .header__logo {

@@ -183,10 +183,41 @@ a:hover {
 
 /* ---------- Konten ---------- */
 
+/* Lebar maksimum isi halaman.
+ *
+ * Ditaruh di sini, bukan ditulis di setiap komponen, karena ada
+ * beberapa elemen yang harus saling segaris: isi halaman, header,
+ * dan isi dialog. Kalau angkanya ditulis berkali-kali, begitu satu
+ * berubah, yang lain tidak ikut — dan perbedaannya baru kentara
+ * di layar lebar, yang paling jarang dibuka saat pengembangan.
+ *
+ * Batas ini bukan sekadar penahan. Di layar 2560px, membiarkan
+ * isi selebar layar membuat panjang baris jadi 2500px, dan baris
+ * sepanjang itu tidak bisa dibaca. Yang membuatnya nyaman justru
+ * ruang kosong di kedua sisi. */
+:root {
+  --lebar-konten: 72rem;
+}
+
 .konten {
-  max-width: 72rem;
+  max-width: var(--lebar-konten);
   margin-inline: auto;
   padding: 2rem 1.5rem 4rem;
+}
+
+/* Padding samping dikecilkan di layar sempit.
+ *
+ * Di 320px, 1.5rem di kiri dan kanan memakan 48px — 15% dari lebar
+ * layar, padahal layar itu sudah yang paling sempit yang masih
+ * dipakai. Setelah kartu di dalamnya mengurangi paddingnya lagi,
+ * yang benar-benar tersisa cuma sekitar dua pertiga lebar layar.
+ *
+ * Dipakai `max-width` dan bukan `min-width`, karena ini soal ruang
+ * yang benar-benar ada — bukan soal jarak yang ingin ditambahkan. */
+@media (max-width: 30rem) {
+  .konten {
+    padding: 1.5rem 1rem 3rem;
+  }
 }
 
 .konten__judul {

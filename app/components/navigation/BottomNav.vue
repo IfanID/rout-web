@@ -34,20 +34,24 @@ const beranda = localePath('index')
  *
  * Ketiga hal ini memang satu kesatuan. Slot tengah mewakili bagian
  * Running Man, dan bagian itu punya empat halaman yang tidak saling
- * menimpa: beranda di `/running-man`, isi lengkap di `/detail`, daftar
- * episode di `/episode`, dan halaman menonton di `/episode/streaming`.
- * Kalau hanya dibandingkan sama persis dengan berandanya, tetesan
- * navbar ikut hilang tepat ketika orang sedang membaca halaman-halaman
- * itu — padahal tidak ada item lain yang bisa mewakili bagian itu.
+ * menimpa: beranda di `/running-man`, isi lengkap di
+ * `/running-man/detail`, daftar episode di `/running-man/episode`, dan
+ * halaman menonton di `/running-man/episode/streaming`. Kalau hanya
+ * dibandingkan sama persis dengan berandanya, tetesan navbar ikut
+ * hilang tepat ketika orang sedang membaca halaman-halaman itu —
+ * padahal tidak ada item lain yang bisa mewakili bagian itu.
  *
- * Routing berbasis file menjawab why halaman-halaman itu tidak bisa
- * dianggap anak dari berandanya lewat path: satu-satunya cara meletakkan
- * file di bawah `/running-man` adalah lewat folder yang namanya
- * `running-man`, dan folder itu lalu bertabrakan dengan `running-man.vue`
- * yang bernama sama di direktori yang sama. Nuxt menyatukan keduanya,
- * route `/running-man/detail` tetap terbentuk tapi yang dirender adalah
- * beranda. Karena itu hubungan ini dinyatakan lewat nama route di kolom
- * `dalam`, bukan lewat path.
+ * Halaman-halaman itu mewarisi lewat path, karena semuanya berada di
+ * bawah `/running-man/`. Kolom `dalam` tidak dipakai untuk Running
+ * Man — lihat catatan fungsi `milik` di bawah.
+ *
+ * Warisan itu tidak gratis. Folder `running-man/` tidak boleh berdiri
+ * bersama berkas `running-man.vue` di direktori yang sama: kalau
+ * keduanya ada, route di bawah folder itu menjadi CHILD dari route
+ * beranda, bukan saudara, dan child hanya tampil lewat `<router-view>`
+ * milik parent. Gejalanya bukan 404 melainkan halaman beranda yang
+ * diam-diam muncul. Berandanya karena itu `running-man/index.vue`.
+ * Penjelasan lengkapnya ada di header berkas itu.
  *
  * Warisan path berhenti di halaman beranda, dan ini bukan sekadar
  * biaya tambahan: `/id`, `/en`, dan `/ko` adalah awalan dari setiap
@@ -63,7 +67,13 @@ function milik(path: string, target: string, halamanLain: readonly string[]) {
 
   /* `.some`, bukan `includes`: yang dibandingkan adalah hasil
      `localePath`, yaitu path lengkap untuk locale yang sedang aktif,
-     bukan nama route yang tertulis di `dalam`. */
+     bukan nama route yang tertulis di `dalam`.
+
+     Daftar ini kosong untuk semua item sekarang, karena satu-satunya
+     bagian yang punya halaman anak — Running Man — semuanya sudah
+     berada di bawah `/running-man/` dan sudah diwarisi dari awalan
+     path. Baris ini tetap ada untuk bagian yang datar nanti, karena
+     itu memang kasus yang belum bisa dijawab awalan path. */
   if (halamanLain.some(nama => dari === tanpaSlash(localePath(nama)))) return true
 
   const ke = tanpaSlash(target)
@@ -71,6 +81,8 @@ function milik(path: string, target: string, halamanLain: readonly string[]) {
   if (dari === ke) return true
   if (ke === beranda) return false
 
+  /* Yang terakhir ini yang menyalakan Running Man di
+     `/running-man/detail` dan `/running-man/episode/streaming`. */
   return dari.startsWith(`${ke}/`)
 }
 
@@ -94,8 +106,10 @@ const diHalamanCari = computed(() =>
 
 /* `ke` adalah nama route, bukan path. Dikosongkan untuk item yang
    halamannya belum ada.
-   `dalam` adalah daftar nama route halaman lain milik item itu, dan
-   hanya diisi slot tengah. Lihat kolom `dalam` di useMiddleSlot.ts.
+   `dalam` adalah daftar nama route halaman lain milik item itu, untuk
+   halaman yang tidak bisa mewarisi lewat awalan path. Sekarang kosong
+   di semua entri — Running Man semuanya sudah di bawah `/running-man/`.
+   Lihat kolom `dalam` di useMiddleSlot.ts.
 
    Slot tengah ikut aturan yang sama: `ke` dan `dalam` diambil dari
    pintasan yang sedang terpilih, sehingga item ini punya halaman

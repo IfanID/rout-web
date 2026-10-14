@@ -33,5 +33,177 @@
     "favorit": "Favorit",
     "tersimpan": "Tersimpan",
     "aktivitas": "Aktivitas"
+  },
+  "anggota": {
+    "judul": "Pengenalan anggota",
+    "karier": "Riwayat karier",
+    "aktif": "Aktif",
+    "keluar": "Sudah keluar",
+    "bawah": "Nama dan profil mengikuti data SBS, yang belum diperbarui — sebagian anggota yang sudah keluar masih tercantum, dan sebagian yang bergabung sejak 2024 belum masuk. Penanda status diambil dari laporan media Korea.",
+    "orang": {
+      "yuseok": {
+        "sapaan": "Si troublemaker yang tak berubah-ubah",
+        "deskripsi": {
+          "1": "Harga diri Running Man.",
+          "2": "Bukan karena dia sendiri yang merasa, tapi para anggota mengakui dia peringkat pertama dari sisi kegantengan di Running Man.",
+          "3": "Tertawa sudah tentu tertawa, tajam sudah tentu tajam, cepat sudah tentu cepat.",
+          "4": "Bakat sungguhan yang membuat anggota lain iri, sekaligus si pengusung suasana resmi Running Man. Dan persona Urus Willis."
+        },
+        "karier": {
+          "1": "2019– MBC “Kalau Bosan, Apa yang Dilakukan? (놀면 뭐하니?)”",
+          "2": "2018– tvN “You Quiz on the Block (유 퀴즈 온 더 블럭)”",
+          "3": "2010– SBS “Running Man (런닝맨)”",
+          "4": "2018 SBS “Michuri 8-1000 (미추리 8-1000)”",
+          "5": "2015 JTBC “Proyek UU - Shugaman (투유 프로젝트 - 슈가맨)”",
+          "6": "2015 SBS “Bermimpi, Tidak Apa-apa (동상이몽, 괜찮아 괜찮아)”",
+          "7": "2008 SBS “Hari Minggu Enak - Keluarga Berpendiri (일요일이 좋다 - 패밀리가 떴다)”",
+          "8": "2006 MBC “Infinite Challenge (무한도전)”",
+          "9": "2006 SBS “X-Man, Hari Minggu Enak (X맨 일요일이 좋다)”"
+        }
+      },
+      "jiseokjin": {
+        "sapaan": "Hugh Grant dari Jukwon-dong yang memaksakan diri menyayangi keluarganya",
+        "deskripsi": {
+          "1": "Awalnya ia bahkan ingin menarik diri, tapi sekarang selalu bilang Running Man yang paling bagus.",
+          "2": "Sering mendapat ejekan dari orang-orang di sekitarnya."
+        },
+        "karier": {
+          "1": "2010– SBS “Running Man (런닝맨)”",
+          "2": "2018 채널A “Harus Pulang (팔아야 귀국)”",
+          "3": "2016 Radio MBC FM4U “Kencan Jam Dua, Saya Jee Seok-jin (2시의 데이트 지석진입니다)”",
+          "4": "2005 KBS2 “Happy Sunday - Campuran Ansel-Ansel (해피선데이 - 여걸식스)”",
+          "5": "2004 KBS2 “Star Golden Bell (스타골든벨)”"
+        }
+      },
+      "gimjongguk": {
+        "sapaan": "Kim-chichi saat musim panas, Kim si manajer di musim lain",
+        "deskripsi": {
+          "1": "Hati saya adalah botol kecap!",
+          "2": "Dari yang biasa jadi preman sampai jadi sasaran semua orang!",
+          "3": "Kerja bakti pun selalu menyertakan si anak nakal itu!",
+          "4": "Selamat atas penghargaan entertainer tahun 2020."
+        },
+        "karier": {
+          "1": "2016– SBS “Anak Setan yang kami Sayang (미운 우리 새끼)”",
+          "2": "2010– SBS “Running Man (런닝맨)”",
+          "3": "2020 KBS2 “Flying Shotsuri - The New Beginning (날아라 슛돌이 - 뉴 비기닝)”",
+          "4": "2017 tvN, Mnet “Suaramu Terlihat (너의 목소리가 보여)”",
+          "5": "2012 KBS2 “Melarikan Diri, Nomor Satu (위기탈출 넘버원)”",
+          "6": "2008 SBS “Hari Minggu Enak - Keluarga Berpendiri (일요일이 좋다 - 패밀리가 떴다)”",
+          "7": "2006 SBS “X-Man, Hari Minggu Enak (X맨 일요일이 좋다)”"
+        }
+      },
+      "haha": {
+        "sapaan": "Si kumis kumal yang berpura-pura paling muda di antara entertainer tahun 1979",
+        "deskripsi": {
+          "1": "Ayah dari tiga anak sekaligus, sekaligus orang yang paling sering digurui di Running Man.",
+          "2": "Masih belum dia sendiri sadari, atau lebih tepatnya masih tidak ingin mengakuinya.",
+          "3": "Bekerja keras untuk menghidupi Kw Entertainment yang mungil itu.",
+          "4": "Pemimpin perusahaan yang diberi sedikit uang receh saja, langsung berlari.",
+          "5": "Baru-baru ini dia mengirim uang jajan ke aku."
+        },
+        "karier": {
+          "1": "2019– 채널A “IconTact (아이콘택트)”",
+          "2": "2010– SBS “Running Man (런닝맨)”",
+          "3": "2020 E채널 “Teman Sejati (찐한친구)”",
+          "4": "2019 SKY, 라이프타임채널 “The Play (위플레이)”",
+          "5": "2017 Mnet “Rapper SMA (고등래퍼)”",
+          "6": "2006 MBC “Infinite Challenge (무한도전)”",
+          "7": "2006 SBS “X-Man, Hari Minggu Enak (X맨 일요일이 좋다)”"
+        }
+      },
+      "songjihyo": {
+        "sapaan": "Nama asli Cheon Seong-im dan Cheon Su-yeon, nama panggilnya Jeok Toma",
+        "deskripsi": {
+          "1": "Tidak bisa disebut chemistry-nya luar biasa dengan anggota Running Man, tapi juga tidak bisa disebut tidak ada sama sekali.",
+          "2": "Singkatnya, Ji-hyo akhir-akhir ini lucu."
+        },
+        "karier": {
+          "1": "2010– SBS “Running Man (런닝맨)”",
+          "2": "2020 Drama JTBC “Kita, Pernah Cinta? (우리, 사랑했을까)”",
+          "3": "2020 Film “Penyusup (침입자)”",
+          "4": "2018 Drama KBS2 “Lovely Horribly (러블리 호러블리)”",
+          "5": "2016 Drama JTBC “Minggu Ini Istri saya Sedang Hendak Bercerai (이번 주 아내가 바람을 핍니다)”",
+          "6": "2014 Drama tvN “Emergency Couple (응급남녀)”"
+        }
+      },
+      "igwangsu": {
+        "sapaan": "Si pelayan aktor kelas A",
+        "deskripsi": {
+          "1": "Kelas B? Pergi saja!",
+          "2": "Aku hanya caring soal yang kelas A!",
+          "3": "Bisa setinggi tiga meter, tapi tetap malas jadi aktor bintang."
+        },
+        "karier": {
+          "1": "2010– SBS “Running Man (런닝맨)”",
+          "2": "2019 Film “Kakak-Adik Particularly (나의 특별한 형제)”",
+          "3": "2018 Film “Detektif: The Returns (탐정: 리턴즈)”",
+          "4": "2018 Drama tvN “Live (라이브)”",
+          "5": "2016 Drama tvN “Dear My Friends (디어 마이 프렌즈)”",
+          "6": "2016 Sitcom KBS2 “Suara Hati (마음의 소리)”",
+          "7": "2014 Drama SBS “Tidak Apa-apa, Itu Cinta (괜찮아 사랑이야)”"
+        }
+      },
+      "yangsechan": {
+        "sapaan": "Si adik Yang Se-hyung",
+        "deskripsi": {
+          "1": "Pria dengan gusi yang menarik. Sepertinya punya pacar.",
+          "2": "Boneka kesayangan Kim Jong-kook.",
+          "3": "Tapi diam-diam dia mencaci Kim Jong-kook dari belakang.",
+          "4": "Jongkook biasanya berpura-pura tidak tahu, tapi begitu buktinya ketahuan, dia punya rencana untuk membunuhnya."
+        },
+        "karier": {
+          "1": "2017– SBS “Running Man (런닝맨)”",
+          "2": "2011– tvN “Comedy Big League (코미디빅리그)”",
+          "3": "2020 KBS2 “Flying Shotsuri - The New Beginning (날아라 슛돌이 - 뉴 비기닝)”",
+          "4": "2019 tvN “Suara Tanaman Dicabut 3 - Ekspedisi (풀 뜯어먹는 소리 3 - 대농원정대)”",
+          "5": "2019 MBC “Cinta si-hoo (호구의 연애)”",
+          "6": "2018 채널A “Harus Pulang (팔아야 귀국)”",
+          "7": "2003 SBS “Ubiquitous SA (웃찾사)”"
+        }
+      },
+      "jeonsomin": {
+        "sapaan": "Si penyair yang kehilangan kesenggolan",
+        "deskripsi": {
+          "1": "Setelah menonton lama, ternyata dia memang tipe yang begitu.",
+          "2": "Bertindak sebagai satu-satunya aktris yang mirip Han Min-kwan.",
+          "3": "Yakin bisa lebih lucu daripada para komedian!",
+          "4": "Bisa beracting berlebihan, komedi situational, alur cinta, menggoda dengan jebakan, mengkhianati, dan gondrong"
+        },
+        "karier": {
+          "1": "2017– SBS “Running Man (런닝맨)”",
+          "2": "2018 Drama tvN “Top Star Baek (톱스타 유백이)”",
+          "3": "2016 Drama 드라맥스 “Sesuatu yang Satu Persen (1%의 어떤 것)”",
+          "4": "2014 Drama SBS “Cinta yang Tak Berujung (끝없는 사랑)”",
+          "5": "2013 Drama MBC “Putri Aurora (오로라 공주)”"
+        }
+      },
+      "jiyeoun": {
+        "sapaan": "Ji Ye-eun, artis yang dikenal dari SNL Korea",
+        "deskripsi": {
+          "1": "Dikenal sebagai kru SNL Korea season 3 (SNL 코리아 리부트 시즌 3) sejak 2022. Setahun kemudian dia muncul di Running Man (런닝맨) dan Chief Detective Kian (대환장 기안장).",
+          "2": "Lulus dari Korea National University of Arts, Program Studi Drama.",
+          "3": "Mulai berkarier sebagai pebakat pada 2017. Pada 2024 dia menerima SBS Entertainment Awards Rising Star Award."
+        },
+        "karier": {
+          "1": "2024– SBS “Running Man (런닝맨)”",
+          "2": "2022– SNL 코리아 “SNL Korea Reboot Season 3 (SNL 코리아 리부트 시즌 3)”",
+          "3": "2024 쿠팡플레이 “Working Adults (직장인들)”",
+          "4": "2025 쿠팡플레이 “Working Adults Season 3 (직장인들 시즌 3)”",
+          "5": "2024– 넷플릭스 “Chief Detective Kian (대환장 기안장)”",
+          "6": "2025 KBS2 “Crazy Rich Korean (크레이지 리치 코리안)”",
+          "7": "2026– TV CHOSUN “What Did You Do in Your Life (왕은 무얼 자셨는가)”",
+          "8": "2019 MBC “The Newest Trend Program 2 (최신유행 프로그램 2)”",
+          "9": "2023 MBC “Radio Star (라디오스타)”"
+        }
+      }
+    },
+    "kata": {
+      "드라마": "Drama",
+      "영화": "Film",
+      "라디오": "Radio",
+      "시트콤": "S sitkom",
+      "드라마맥스": "Dramamax"
+    }
   }
 }

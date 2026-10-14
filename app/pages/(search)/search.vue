@@ -71,7 +71,7 @@
     <span class="cari__miring" />
   </p>
 
-  <SearchOverlay />
+  <NavigationSearchOverlay />
 </template>
 
 <script setup lang="ts">
@@ -87,7 +87,7 @@ const { kueriBersih, adaKueri, hasil } = useSearchOverlay()
 /* Bawaan .konten cuma 4rem di bawah, sedangkan navbar bawah
    tetap 72px ditambah env(safe-area-inset-bottom). Tanpa ini
    konten terakhir tertutup navbar. Sama seperti di
-   (settings)/settings.vue, (running-man)/running-man.vue, dan
+   (settings)/settings.vue, running-man/index.vue, dan
    (profile)/profile.vue. */
 .cari {
   padding-bottom: 10rem;

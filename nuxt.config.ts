@@ -72,7 +72,10 @@ export default defineNuxtConfig({
     // Contoh: sedang di /en/produk lalu pilih Indonesia -> /id/produk
     detectBrowserLanguage: {
       useCookie: true,
-      cookieKey: 'rout_locale',
+      // Nama kunci pakai isi, bukan nama produk. Cookie bertahan lama
+      // di browser, jadi nama produk yang tertanam di sini ikut bertahan.
+      // Sama seperti KUNCI_SIMPAN di useMiddleSlot.ts.
+      cookieKey: 'locale:pilihan',
       redirectOn: 'root'
     }
   }
