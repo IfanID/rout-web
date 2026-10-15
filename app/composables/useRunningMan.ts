@@ -111,8 +111,7 @@ const STATISTIK = {
      — misalnya "menampilkan 5 dari 822". Kalau jumlah diambil dari
      `nilai`, setiap yang membandingkan harus tahu bahwa itu string,
      dan membandingkan angka dengan string kebetulan berhasil karena
-     bahasa membenarkannya memaksa ke angka — bukan karena itu
-     benar-benar angka. */
+     bahasa memaksa ke angka — bukan karena itu benar-benar angka. */
   /* Hanya dua angka ini yang tidak sudah tampil di kartu depan.
 
      Dulu ada empat. "80–95" dan "16 tahun tayang" dihapus karena
@@ -127,32 +126,18 @@ const STATISTIK = {
   cast: { ikon: 'lucide:users', nilai: '7', label: 'Cast tetap', jumlah: 7 }
 }
 
-/** Episode yang sudah tayang, terbaru di atas.
+/* Daftar episode TIDAK ada di sini.
  *
- *  TIDAK ada judul episode. Running Man memang tidak memberi judul
- *  pada episodenya, dan mengarang judul demi kolom yang terlihat
- *  penuh akan menyesatkan. Nomor, tanggal, dan tamu adalah tiga hal
- *  yang benar-benar ada.
+ * Dulu ada larik `EPISODE` berisi lima episode contoh, dipakai halaman
+ * episode dan halaman pemutar. Keduanya sekarang membaca abyss.to lewat
+ * `useRunningManEpisode()`.
  *
- *  `tamu` juga belum lengkap. Daftar tamu yang tercatat disusun dari
- *  beberapa tabel yang tidak memuat semua tamu, jadi isinya berarti
- *  "tamu yang tercatat", bukan "semua tamu episode itu".
- *
- *  Belum ada pemuatan lebih banyak maupun penomoran halaman. Keduanya
- *  butuh keputusan bentuk dulu: tombol "Muat lagi" atau daftar
- *  bersambung yang terus menambah ke bawah. Menebak sekarang hanya
- *  menambah kode yang nanti harus dibongkar. */
-const EPISODE = [
-  { nomor: 822, tanggal: '11 Oktober 2026', tamu: 'Heo Kyung-hwan' },
-  { nomor: 821, tanggal: '4 Oktober 2026', tamu: 'Heo Kyung-hwan' },
-  { nomor: 820, tanggal: '27 September 2026', tamu: 'San' },
-  {
-    nomor: 819,
-    tanggal: '20 September 2026',
-    tamu: 'Heo Kyung-hwan, Miyeon, Lee Joo-yeon'
-  },
-  { nomor: 818, tanggal: '13 September 2026', tamu: 'Kwon Eun-bi' }
-]
+ * Angka 822 di `STATISTIK` tetap, dan itu bukan sisa yang lupa
+ * dibersihkan: itu jumlah episode acaranya, sedangkan yang tampil di
+ * daftar episode adalah jumlah yang benar-benar ada di abyss — sekarang
+ * 69 dari 70, dan episode 66 masih kosong di sana. Dua angka itu menjawab
+ * dua pertanyaan berbeda, dan menyamakan keduanya membuat orang mengira
+ * ada 822 baris yang gagal dimuat. */
 
 /* Identitas objeknya dijaga tetap di luar fungsi. Kalau objeknya
    dibuat di dalam, setiap panggilan memakai objek baru, dan setiap
@@ -163,7 +148,6 @@ export function useRunningMan() {
     acara: ACARA,
     berikutnya: BERIKUTNYA,
     tentang: TENTANG,
-    statistik: STATISTIK,
-    episode: EPISODE
+    statistik: STATISTIK
   }
 }

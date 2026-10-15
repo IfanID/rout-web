@@ -112,6 +112,49 @@ Yang tidak perlu: daftar file yang berubah, karena git sudah menampilkannya. Par
 
 Untuk commit kecil, satu baris saja sudah cukup — tidak wajib ada body.
 
+### Trailer atribusi
+
+**Pesan commit TIDAK boleh memuat trailer atribusi** — `Co-Authored-By`,
+`Signed-off-by`, atau bentuk lain yang sejenis — kecuali diminta eksplisit.
+
+Identitas commit di mesin ini:
+
+```
+user.name  = IfanID
+user.email = Nafantriyadi.11.99@gmail.com
+```
+
+GitHub menampilkannya di daftar commit sebagai "IfanID dan nama lain", dan
+itu atribut yang tidak ada di mesin ini: konfigurasi git global hanya
+berisi dua kunci di atas, tanpa `commit.template`, tanpa `core.hooksPath`,
+tanpa hook aktif, dan konfigurasi sistem kosong. Diperiksa 15 Oktober 2026.
+Artinya apa pun yang muncul di pesan commit adalah **teks yang ditulis
+assistant**, bukan sesuatu yang ditambahkan git. Kalau trailer itu ada,
+ia pilihan — dan pilihan yang tidak pernah diminta berarti tidak perlu.
+
+Kalau memang diminta, bentuknya `Co-Authored-By: Nama <email>` di baris
+terakhir, dipisahkan satu baris kosong dari isi pesan.
+
+Aturan ini ada dua kali — di sini dan di `~/.config/opencode/AGENTS.md`.
+Global supaya berlaku di semua proyek, dan di sini supaya ikut kalau
+berkas global tidak terbaca.
+
+### Sebelum push
+
+Cek isi commit yang akan dipush **tidak memuat perubahan milik orang
+lain.** Working tree sering berisi dua kelompok perubahan yang tidak
+berhubungan — misalnya komponen yang sedang dikerjakan dengan fitur yang
+baru, atau satu berkas dokumentasi yang disentuh dua pihak.
+
+Kalau tidak bisa dipisahkan karena perubahannya saling bergantung,
+**sebutkan di pesan commit bagian mana yang ikut terbawa** dan kenapa.
+Membiarkan atribusi diam-diam lebih buruk daripada menyebutnya.
+
+Untuk `AGENTS.md` sendiri, perubahannya biasanya bercampur: satu baris di
+pohon struktur bisa disunting oleh dua pihak sekaligus. Baris seperti itu
+tidak boleh dipecah jadi dua — hasilnya sama saja, dan yang hilang
+justru jejaknya.
+
 ## Identitas
 
 | Nama | Peran | Tampil di UI |
@@ -162,7 +205,7 @@ rout-web/
 ├── nuxt.config.ts            Modul @nuxt/icon + @nuxtjs/i18n, compatibilityDate 2025-07-15, devtools aktif
 ├── package.json              type: module, name: rout-web
 ├── tsconfig.json             4 project references ke .nuxt/
-├── .env                      NUXT_PUBLIC_SITE_URL, tidak ikut ter-commit
+├── .env                      NUXT_PUBLIC_SITE_URL + NUXT_PUBLIC_YOUTUBE_LIVE + ABYSS_API_KEY, tidak ikut ter-commit
 ├── .env.example              Acuan kalau .env perlu dibuat ulang
 ├── app/
 │   ├── app.vue               Root, SEO head + header + toaster + <NuxtPage />
@@ -179,13 +222,15 @@ rout-web/
 │   │   ├── notification/
 │   │   │   └── Toaster.vue
 │   │   ├── ClipPlayer.vue      Pemutar klip di halaman satu klip
+│   │   ├── LivePlayer.vue      Pemutar live YouTube, mulai sendiri tanpa suara
 │   │   ├── PreviewList.vue     Daftar klip, dipakai beranda + /preview
 │   │   └── PreviewSort.vue     Tab urutan klip: terbaru, terlama, terpopuler
 │   ├── composables/
 │   │   ├── useNotifications.ts
 │   │   ├── useMiddleSlot.ts      Pintasan slot tengah navbar + route-nya
-│   │   ├── useRunningMan.ts      Data acara, dipakai beranda + detail + episode
+│   │   ├── useRunningMan.ts      Data acara, dipakai beranda + detail
 │   │   ├── useRunningManClips.ts Klip tayang, diambil dari /api/running-man/clips
+│   │   ├── useRunningManEpisode.ts Episode dari abyss, /api/running-man/episode
 │   │   └── useSearchOverlay.ts   State panel cari melayang
 │   ├── i18n/
 │   │   └── locales/          en.json, id.json, ko.json (hero, cari, nav, pengaturan, slot, anggota)
@@ -210,11 +255,15 @@ rout-web/
 │   ├── api/running-man/
 │   │   ├── acak.get.ts          → /api/running-man/acak, sengaja tidak dicache
 │   │   ├── clips.get.ts         → /api/running-man/clips
+│   │   ├── episode.get.ts       → /api/running-man/episode
 │   │   └── sekitar.get.ts       → /api/running-man/sekitar, tetangga satu klip
 │   └── utils/running-man/
+│       ├── episode.ts           Sumber episode abyss.to
 │       └── klip.ts             Alamat, pemetaan, dan pencarian posisi di arsip
 ├── shared/
-│   └── types/klip.ts          Bentuk klip yang menyeberang dari server ke app
+│   └── types/
+│       ├── episode.ts           Bentuk episode yang menyeberang server ke app
+│       └── klip.ts              Bentuk klip yang menyeberang dari server ke app
 └── public/
     ├── favicon.ico
     └── robots.txt
@@ -514,6 +563,39 @@ Ukuran ikon langsung lewat `font-size` pada `<Icon>`, dan kelas ditaruh di eleme
 
 Jangan menulis `:deep(svg)`. `@nuxt/icon` merender ikon sebagai `<span class="iconify">` dan menggambarnya lewat mask CSS, bukan elemen `<svg>`.
 
+## Layout dan breakpoint
+
+**Tiga breakpoint, ketiganya sudah dipakai. Dan satu plafon yang bukan breakpoint.**
+
+| | Untuk | Dipakai di |
+|---|---|---|
+| `max-width: 30rem` | HP kecil, menyempit | `Header.vue`, `detail.vue`, `.konten` di `main.css` |
+| `min-width: 48rem` | tablet ke atas, melebar | `BottomNav.vue`, `search.vue`, daftar episode (2 kolom), pemutar |
+| `min-width: 64rem` | laptop ke atas | daftar episode (3 kolom) |
+| `72rem` | **plafon, bukan breakpoint** | `--lebar-konten` |
+
+Aturannya **`max-width` untuk menyempit, `min-width` untuk melebar.** Menulis `max-width: 48rem` untuk layar sempit sama dengan menulis kondisi yang tidak pernah benar.
+
+**Plafon `72rem` menutup semua layar lebar tanpa perlu breakpoint keempat.** Di atas 1152px konten berhenti melebar dan hanya terdorong ke tengah, jadi layout tidak berubah sama sekali. Layar 2560px tidak butuh aturan — ia hanya punya margin lebih lebar.
+
+**Jangan menambah breakpoint tanpa alasan yang bisa diukur.** Itu sebabnya jumlah ini tiga dan bukan enam: tiap angka lahir dari layout yang benar-benar berubah, dan bisa dicek dengan mengukur. Kalau sebuah komponen butuh angka keempat, cek dulu apakah masalahnya sebenarnya komponen itu — layout yang beda-beda di lebar yang sama lebih buruk daripada satu layout yang berlaku di semua lebar.
+
+**Dua lebar yang wajib diperiksa setiap kali ada layout baru:**
+
+```
+390px   HP kecil      ruang paling sempit yang masih dipakai
+1440px  laptop/monitor  --lebar-konten: 72rem = 1152px
+```
+
+Dua kegagalan yang sudah nyata di proyek ini, keduanya karena layout dirancang hanya untuk HP:
+
+- **Pemutar video** mengikuti `--lebar-konten` dan jadi 1152px. Dengan rasio 16:9 tingginya **648px** — setengah tinggi monitor untuk satu video. Diperbaiki dengan `max-width: 56rem` + `margin-inline: auto` di `min-width: 48rem`.
+- **Daftar episode** jadi baris selebar 1104px berisi thumbnail 76px, jadi judul dan badge terpisah hampir satu meter. Diperbaiki dengan dua kolom di `min-width: 48rem`.
+
+Jadi: **yang melebar tidak boleh otomatis jadi satu kolom yang panjang.** Kalau kontennya berupa daftar atau baris berulang, jadikan dua kolom atau beri batas lebar. Kalau berupa satu blok besar seperti video, beri batas lebar dan pusatkan.
+
+Satu hal yang perlu diingat soal grid: **jumlah kolom harus sama dengan jumlah anak yang mengalir.** Kalau kurang, anak terakhir turun ke baris kedua **tanpa error apa pun** — itulah yang terjadi pada chevron di daftar episode, dan gejalanya hanya ikon yang melayang di bawah thumbnail.
+
 ## Notifikasi
 
 Sistem toast global. Dipanggil dari mana saja tanpa import dan tanpa perlu meneruskan prop berlapis-lapis.
@@ -684,13 +766,15 @@ Teks profil ditulis dalam bahasa Korea lalu diterjemahkan ke `id` dan `en` di `a
 
 ## Environment
 
-Satu variabel yang dibaca kode, diambil di `nuxt.config.ts` tanpa nilai default:
+Tiga variabel yang dibaca kode, semuanya diambil di `nuxt.config.ts` lewat `process.env`:
 
 ```
 NUXT_PUBLIC_SITE_URL=http://localhost:3000
+NUXT_PUBLIC_YOUTUBE_LIVE=https://www.youtube.com/live/d8OvbUAxaec
+ABYSS_API_KEY=<kunci dari dashboard abyss.to>
 ```
 
-Dipakai untuk `i18n.baseUrl` dan `runtimeConfig.public.siteUrl`, yang menghasilkan URL absolut pada tag `hreflang` dan `canonical`.
+`NUXT_PUBLIC_SITE_URL` dipakai untuk `i18n.baseUrl` dan `runtimeConfig.public.siteUrl`, yang menghasilkan URL absolut pada tag `hreflang` dan `canonical`. Diambil tanpa nilai default.
 
 Kalau variabel ini kosong, tag SEO jatuh ke path relatif (`/id`, bukan `http://localhost:3000/id`) dan modul memberi peringatan `I18n baseUrl is required to generate valid SEO tag links` saat dev server berjalan.
 
@@ -698,7 +782,19 @@ Domain belum ditetapkan, masih `localhost`. Saat sudah ada domain, ganti nilainy
 
 Perhatikan: `baseUrl` **tidak boleh** ditulis sebagai function yang membaca `useRuntimeConfig()`. Nilai function tidak bisa diserialisasi ke runtime config, dan hasilnya tag SEO tetap relatif. Gunakan `process.env` langsung di `nuxt.config.ts`.
 
+`NUXT_PUBLIC_YOUTUBE_LIVE` jadi `runtimeConfig.public.youtubeLive`, dibaca halaman `/running-man` untuk bagian live. Diambil dengan `?? ''` supaya tipenya tetap string dan pemanggil cukup memanggil `.trim()` tanpa memeriksa undefined.
+
+Yang ditulis di situ boleh **id video polos atau alamat youtube.com lengkap** — `watch?v=`, `live/`, `shorts/`, `youtu.be/`, atau `embed/`. Semuanya diterjemahkan jadi id di `LivePlayer.vue`, jadi hasil salinan tombol Bagikan bisa ditempel apa adanya tanpa diluruskan dulu. Kosong berarti bagian live tidak dirender, bukan tampil dengan kotak kosong.
+
+Pemutarnya memakai `autoplay=1` **dan** `mute=1`. Yang kedua bukan pilihan selera: semua peramban hanya mengizinkan pemutaran otomatis tanpa suara, jadi tanpa `mute=1` tayangannya tidak mulai sendiri sama sekali. Suara dinyalakan orang lewat ikon suara milik player YouTube.
+
 `.env` dibaca saat proses start, bukan saat hot reload. Ubah isinya lalu restart dev server, bukan andalkan HMR.
+
+`ABYSS_API_KEY` jadi `runtimeConfig.abyssKey`, dibaca server untuk mengambil daftar episode dari abyss.to. Yang membedakan dari dua variabel lain: ini **tidak boleh** diletakkan di `runtimeConfig.public` — bagian itu ikut terkirim ke browser, dan kunci yang sampai ke klien bukan lagi kunci. Hanya server yang perlu.
+
+Kosong berarti halaman `/running-man/episode` menampilkan daftar kosong, bukan error. Itu disengaja: kunci yang salah adalah kesalahan konfigurasi, dan halaman lain harus tetap hidup. Akarnya ada di log server.
+
+Folder "Running Man" di sisi abyss dicari lewat **nama**, bukan id yang ditulis di sini — jadi kalau foldernya diganti nama di abyss, kode tidak perlu disentuh. Aturan pencarian dan jebakan yang menyertainya ada di `server/utils/running-man/episode.ts`; di sini hanya perlu diketahui bahwa nama folder itu bagian dari konfigurasi.
 
 `.env` juga memuat **komentar yang bukan variabel** — catatan alamat sumber data Running Man. Tidak ada kode yang membacanya, dan tidak perlu. Gunanya supaya alamat sumber tidak hilang bersama percakapan tempat data itu ditemukan.
 

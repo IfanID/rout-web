@@ -404,6 +404,22 @@ a:hover {
 .badge--galat { background: var(--galat-latar); color: var(--galat); }
 .badge--info { background: var(--info-latar); color: var(--info); }
 
+/* Kualitas video — dipakai bersama oleh daftar episode dan halaman
+ * streaming. Bukan varian `.badge--*`, karena kualitas bukan STATE: bukan
+ * "sukses" atau "galat", hanya daftar apa yang bisa diputar. Warna aksen
+ * bawaan `.badge` akan membuatnya terbaca sebagai tanda yang perlu
+ * diperhatikan, dan itu bukan artinya.
+ *
+ * Netral seperti `--latar-sorot`, bukan aksen. */
+.mutu {
+  padding: 0.125rem 0.4375rem;
+  background: var(--latar-sorot);
+  color: var(--teks-sekunder);
+  font-size: 0.625rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Tabel ---------- */
 
 .tabel {
