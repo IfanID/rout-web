@@ -16,6 +16,21 @@ Contoh. Aturan "jangan tulis hex langsung di komponen" ada di header `main.css`,
 
 Sebelum menambah sesuatu ke dokumen ini, periksa dulu apakah isinya sudah ada di file atau di `git log`. Kalau sudah ada, tulis di sana atau jangan tulis sama sekali.
 
+## Cara mengubah kode
+
+Berlaku untuk semua perubahan, bukan cuma satu area.
+
+- Jangan memperbaiki kode, komentar, atau formatting di luar yang diminta. Kalau
+  yang diminta memang soal itu, perbaikannya tetap berhenti di situ.
+- Jangan me-refactor yang tidak rusak — itu permintaan terpisah.
+- Ikuti gaya yang sudah ada di file itu, walau kamu akan menulis berbeda.
+- Kode mati yang tidak berkaitan: sebutkan, jangan dihapus. Yang jadi tidak
+  terpakai karena perubahanmu: hapus.
+
+Setiap baris yang berubah harus bisa ditelusuri ke permintaannya. Kalau arahnya
+belum jelas, tanyakan dulu — menebak lalu jalan terlalu jauh lebih mahal
+daripada satu pertanyaan.
+
 ## Bahasa
 
 Selalu gunakan Bahasa Indonesia.

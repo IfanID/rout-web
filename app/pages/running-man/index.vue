@@ -41,6 +41,13 @@
  * Karena itu ia duduk paling bawah, dan jumlahnya dibatasi tiga — daftar
  * penuh menjawab pertanyaan lain, dan punya halamannya sendiri.
  *
+ * Paling paling bawah ada bagian live YouTube. Alamatnya bukan ditulis
+ * di halaman ini, tapi dibaca dari .env, dan bagian itu hilang sendiri
+ * kalau variabelnya kosong — jadi judulnya tidak pernah berdiri tanpa
+ * isi di bawahnya. Tayangannya mulai sendiri saat halaman dibuka, dan
+ * selalu tanpa suara dulu karena itu aturan playback otomatis di
+ * semua peramban; makanya ada satu kalimat kecil di bawahnya.
+ *
  * Kartu dan tombol sengaja terpisah, bukan kartu yang bisa diketuk
  * seluruhnya. Kalau kartu ikut jadi tautan, isinya jadi dua perintah
  * dalam satu tempat — "ini yang akan tayang" dan "buka yang lengkap"
@@ -73,6 +80,20 @@ const { acara, berikutnya, statistik } = useRunningMan()
 
 const localePath = useLocalePath()
 
+/* Live YouTube, dibaca dari .env lewat runtimeConfig.
+ *
+ * Alamatnya tidak ditulis di sini supaya mengganti tayangannya cukup
+ * mengedit satu baris di .env lalu restart, bukan ikut mengubah halaman
+ * yang ikut ter-commit. Yang ditulis juga tidak dibatasi pada satu
+ * bentuk: id video polos dan alamat youtube.com lengkap sama-sama
+ * dibaca di LivePlayer.vue, jadi hasil salinan tombol Bagikan bisa
+ * ditempel apa adanya.
+ *
+ * Tanpa `trim()` nilai kosong dari .env masih berisi spasi, dan
+ * `v-if` di bawah akan menganggapnya terisi — bagiannya tampil dengan
+ * kotak yang tidak bisa memutar apa pun. */
+const liveYoutube = useRuntimeConfig().public.youtubeLive.trim()
+
 /* Klip tayang, tiga yang terbaru.
  *
  * Datanya nyata, dari SBS lewat /api/running-man/clips — bukan dummy.
@@ -100,7 +121,15 @@ const urutan = urutanKlip(useRoute().query.urutan)
   <main class="konten running-man">
     <h1 class="konten__judul">Running Man</h1>
 
-    <p class="konten__sub">
+    <!-- Ikon diambil dari data acara, bukan ditulis di sini:
+         `acara.meta.jaringan.ikon` sudah berisi `lucide:tv` untuk SBS,
+         jadi tampilan dan datanya tidak bisa berbeda. -->
+    <p class="konten__sub running-man__sub">
+      <Icon
+        :name="acara.meta.jaringan.ikon"
+        class="running-man__sub-ikon"
+        aria-hidden="true"
+      />
       Tayang setiap Minggu di SBS.
     </p>
 
@@ -206,6 +235,32 @@ const urutan = urutanKlip(useRoute().query.urutan)
         <Icon name="lucide:arrow-right" class="tayang__ikon" aria-hidden="true" />
       </NuxtLink>
     </section>
+
+    <!-- ===== Live YouTube ======================================== -->
+
+    <!-- Paling bawah, setelah klip — dan itu bukan kebetulan. Klip
+         adalah tontonan yang dipilih sendiri: orang tahu persis apa
+         yang dia cari. Live tidak bisa dipilih, hanya ditunggu, dan
+         orang yang sedang mencarinya sudah tahu tempatnya. Menaruh
+         live di atas klip berarti menaruh tontonan yang tidak bisa
+         dipilih di tempat orang sedang membuat pilihan.
+
+         Disembunyikan kalau .env belum diisi NUXT_PUBLIC_YOUTUBE_LIVE,
+         sama seperti bagian klip: judul tanpa isi di bawahnya terlihat
+         seperti ada sesuatu yang belum termuat. -->
+    <section v-if="liveYoutube" class="bagian">
+      <h2 class="bagian__judul">Live di YouTube</h2>
+
+      <!-- Alamatnya sudah dibaca di atas; komponen yang mengubahnya
+           jadi id video. Tayangan mulai sendiri begitu halaman ini
+           terbuka, jadi tidak ada tombol untuk ditekan. Catatan soal
+           suaranya ikut di komponen itu, karena yang bicara tentang
+           player adalah player-nya sendiri. -->
+      <LivePlayer
+        :sumber="liveYoutube"
+        judul="Live Running Man di YouTube"
+      />
+    </section>
   </main>
 </template>
 
@@ -227,15 +282,23 @@ const urutan = urutanKlip(useRoute().query.urutan)
  * tidak ada layout sempit yang perlu dilindungi — dan kalau mark
  * turun ke baris sendiri di layar kecil, isinya ikut menyempit
  * jadi pil yang memanjang, yang justru lebih buruk daripada mark
- * yang berputar ke baris kedua. */
+ * yang berputar ke baris kedua.
+ *
+ * Padding dan jaraknya memakai `clamp`, bukan angka tetap. Di 360px
+ * kartu ini kehilangan hampir seperempat lebar layarnya: padding
+ * 1.75rem di kiri dan kanan memakan 56px, dan mark 4rem beserta
+ * jaraknya memakan 84px lagi, sehingga yang tersisa buat tanggal
+ * dan jam cuma sekitar 172px. Yang dikecilkan di layar sempit
+ * hanya ruang kosongnya — isi kartunya tetap sama, dan di layar
+ * lebar angkanya tidak berubah. */
 .tayang {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 1.25rem;
+  gap: clamp(0.875rem, 3.5vw, 1.25rem);
   align-items: center;
 
   margin-top: 2rem;
-  padding: 1.75rem;
+  padding: clamp(1.125rem, 4vw, 1.75rem);
 
   /* Garis aksen setebal 3px di tepi atas.
      *
@@ -270,14 +333,14 @@ const urutan = urutanKlip(useRoute().query.urutan)
   align-items: center;
   justify-content: center;
 
-  width: 4rem;
-  height: 4rem;
+  width: clamp(3.25rem, 14vw, 4rem);
+  height: clamp(3.25rem, 14vw, 4rem);
   border-radius: var(--radius-besar);
 
   background: var(--latar-naik-3);
   border: 1px solid var(--garis-sedang);
 
-  font-size: 2rem;
+  font-size: clamp(1.625rem, 7vw, 2rem);
   line-height: 1;
   color: var(--teks-aksen);
 }
@@ -290,7 +353,7 @@ const urutan = urutanKlip(useRoute().query.urutan)
 
 .tayang__episode {
   margin-top: 0.25rem;
-  font-size: 1.875rem;
+  font-size: clamp(1.5rem, 6vw, 1.875rem);
   font-weight: 700;
   line-height: 1.2;
   color: var(--teks-aksen);
@@ -345,6 +408,27 @@ const urutan = urutanKlip(useRoute().query.urutan)
 .tayang__tombol {
   flex: 1 1 10rem;
   justify-content: center;
+
+  /* Transisi ditulis ulang lengkap, bukan `transition: transform`.
+     `.tombol` di main.css sudah punya daftar-nya sendiri, dan menulis
+     hanya `transform` berarti daftar itu ikut hilang — tombol jadi
+ * kehilangan perubahan warna yang memang kerjaannya. */
+  transition:
+    background var(--transisi),
+    border-color var(--transisi),
+    color var(--transisi),
+    transform var(--transisi);
+}
+
+/* Umpan balik saat ditekan, untuk ketiga tombol halaman ini.
+ *
+ * Tanpa itu, di layar sentuh tombolnya terasa tidak ditekan sama
+ * sekali: tekanannya baru terlihat setelah halaman berpindah, dan di
+ * koneksi lambat itu bisa beberapa detik. Satu piksel ke bawah cukup —
+ * yang dicari bukan gerakan, tapi bukti tombol itu memang ditekan. */
+.tayang__tombol:active,
+.lebih:active {
+  transform: translateY(1px);
 }
 
 /* --- Rekap ---------------------------------------------------- */
@@ -372,6 +456,15 @@ const urutan = urutanKlip(useRoute().query.urutan)
   justify-content: center;
 
   margin-top: 1rem;
+
+  /* Daftar transisinya sama persis dengan `.tayang__tombol` di atas,
+     dengan alasan yang sama: `.tombol` sudah punya daftar sendiri, dan
+     menimpanya dengan `transform` saja akan menghapus bagian itu. */
+  transition:
+    background var(--transisi),
+    border-color var(--transisi),
+    color var(--transisi),
+    transform var(--transisi);
 }
 
 /* --- Ikon ---------------------------------------------------- */
@@ -388,6 +481,22 @@ const urutan = urutanKlip(useRoute().query.urutan)
   font-size: 1rem;
 }
 
+/* --- Subjudul ------------------------------------------------- */
+
+/* Baris, bukan paragraf. `.konten__sub` dari main.css mengatur jarak
+ * atas dan warnanya, tapi bukan tata letaknya — jadi ikonnya butuh
+ * `flex` supaya duduk sebaris dengan kalimat, bukan turun ke baris
+ * sendiri. */
+.running-man__sub {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.running-man__sub-ikon {
+  font-size: 1rem;
+}
+
 /* --- Gerak ---------------------------------------------------- */
 
 /* Halaman ini tidak punya gerak yang wajib diputar. Transisi di atas
@@ -395,6 +504,7 @@ const urutan = urutanKlip(useRoute().query.urutan)
  * meminta. */
 @media (prefers-reduced-motion: reduce) {
   .tayang__tombol,
+  .lebih,
   .tayang__ikon {
     transition: none;
   }
