@@ -82,7 +82,43 @@ function keTanggal(nilai: string): string {
  *  perubahan waktu musim panas tidak boleh ikut campur: yang dihitung
  *  cuma jarak hari antara dua tanggal kalender, dan itu tidak punya jam. */
 function tambahHari(tanggal: string, hari: number): string {
+  /* Ketiganya bertipe `number | undefined`, karena destructuring tidak
+   * menjamin panjang array. Karena itu pemeriksaan bentuknya ditulis
+   * eksplisit di bawah, bukan diserahkan ke `Date.UTC` yang akan menerima
+   * `undefined` dan menghasilkan `NaN` tanpa jejaknya. */
   const [tahun, bulan, tanggalnya] = tanggal.split('-').map(Number)
+
+  /* Yang mempersempit tipe di sini `typeof`, bukan `Number.isInteger`.
+   *
+   * `Number.isInteger` mengembalikan `boolean`, bukan `value is number`, jadi
+   * TypeScript tidak bisa tahu setelah pemeriksaannya bahwa variabelnya
+   * sudah pasti bukan `undefined`. `typeof` bisa, karena hanya dia yang
+   * menyempitkan tipe di Bahasa TypeScript.
+   *
+   * Bentuk yang tidak terbaca DILEMPAR, bukan dikembalikan apa adanya.
+   *
+   * Melempar di sini terdengar berlebihan, tapi justru itu yang benar:
+   * pemanggilnya — `jadwal.get.ts` dan `jadwal-push.ts` — sudah punya
+   * `catch` yang jatuh ke `TERAKHIR_DIKETAHUI`. Kalau tanggal rusak
+   * dikembalikan apa adanya, string itu justru terkirim ke peramban, dan
+   * `Intl.DateTimeFormat.format()` di sana melempar saat render sehingga
+   * seluruh halaman ikut rusak — di titik yang jauh lebih sulit
+   * ditelusuri daripada satu error di server. */
+  if (
+    typeof tahun !== 'number' ||
+    typeof bulan !== 'number' ||
+    typeof tanggalnya !== 'number'
+  ) {
+    throw new Error(`tanggal tidak terbaca: ${tanggal}`)
+  }
+
+  /* Pengaman kedua, untuk bentuk yang sudah number tapi bukan bilangan
+   * bulat. Jalur ini nyaris tidak akan terjadi karena bentuknya sudah lolos
+   * `keTanggal` — tapi `Date.UTC` menerima pecahan dan Ergebnis akhirnya
+   * bukan tanggal kalender, jadi dicegah di sini juga. */
+  if (!Number.isInteger(tahun) || !Number.isInteger(bulan) || !Number.isInteger(tanggalnya)) {
+    throw new Error(`tanggal tidak terbaca: ${tanggal}`)
+  }
 
   const waktu = Date.UTC(tahun, bulan - 1, tanggalnya) + hari * 86400000
 

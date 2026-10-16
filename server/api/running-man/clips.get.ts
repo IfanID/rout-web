@@ -50,13 +50,22 @@ const TTL_SEKON = 600
  *
  *  Nama kuncinya disimpan apa adanya di URL — `?urutan=terpopuler` — supaya
  *  pilihan orang bisa dibagikan dan tombol kembali di browser mengikutinya. */
-const URUTAN: Record<string, string> = {
+const URUTAN = {
   terbaru: SORT_TERBARU,
   terlama: SORT_TERLAMA,
   terpopuler: SORT_TERPOPULER
-}
+} as const
 
 const URUTAN_AWAL = 'terbaru'
+
+/* Satu kunci yang dijamin ada.
+ *
+ * Tanpa ini, `URUTAN[urutan]` bertipe `string | undefined` karena
+ * `noUncheckedIndexedAccess`, dan pemanggilnya harus berHandling dengan
+ * kemungkinan `undefined` — padahal `urutan` sudah pasti kuncinya: dia
+ * diambil dari `URUTAN` atau bernilai `URUTAN_AWAL`, yang keduanya ada di
+ * `URUTAN`. Bentuknya ditulis supaya itu terbukti, bukan dipercaya. */
+type KunciUrutan = keyof typeof URUTAN
 
 export default defineCachedEventHandler(
   async (event) => {
@@ -65,7 +74,7 @@ export default defineCachedEventHandler(
      * cache sendiri, jadi kalau diteruskan apa adanya, SBS menerima sort
      * yang tidak dikenal dan jawabannya bisa apa saja. */
     const diminta = String(getQuery(event).urutan || '')
-    const urutan = diminta in URUTAN ? diminta : URUTAN_AWAL
+    const urutan = (diminta in URUTAN ? diminta : URUTAN_AWAL) as KunciUrutan
 
     /* Berapa banyak klip yang sudah dilewati. Halaman daftar mengirimnya
      * lagi setiap kali orang menggulir ke bawah. Angka yang bukan angka,

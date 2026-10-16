@@ -197,9 +197,13 @@ function pecahNama(
 
   const cocok = pola.exec(bersih)
 
+  /* Dua grup yang dikecilkan kosong kalau polanya tidak punya grup — dan
+   * `RegExp.exec` mengembalikan `null` kalau tidak cocok sama sekali.
+   * Dua-duanya berakhir sama: seluruh nama jadi acara dan label kosong,
+   * yang persis perlakuan untuk nama yang tidak memuat pola episode. */
   if (!cocok) return { acara: bersih, label: '' }
 
-  return { acara: cocok[1].trim(), label: cocok[2].trim() }
+  return { acara: (cocok[1] ?? '').trim(), label: (cocok[2] ?? '').trim() }
 }
 
 /** Satu episode dari foldernya, atau null kalau belum bisa diputar.
@@ -330,8 +334,22 @@ export async function cekFolderKosong(
   )
 
   dapat.forEach((episode, i) => {
-    if (episode) ketemu.push(episode)
-    else masih.push(kurang[i])
+    if (episode) {
+      ketemu.push(episode)
+
+      return
+    }
+
+    /* Folder yang gagal diambil harus masuk daftar ulang, kalau tidak ia
+     * hilang dari daftar dan tidak akan pernah dicoba lagi.
+     *
+     * Indeksnya dijaga karena `kurang[i]` bertipe `FolderKosong |
+     * undefined` — `forEach` tidak menjamin panjang kedua array sama,
+     * meskipun keduanya dibangun dari `kurang` yang sama. Yang hilang
+     * tidak boleh lebih baru daripada yang gagal. */
+    const satu = kurang[i]
+
+    if (satu) masih.push(satu)
   })
 
   return { ketemu, masih }

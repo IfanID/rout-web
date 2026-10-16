@@ -83,8 +83,15 @@ export function useEpisode(
 
     const cari = nomor()
 
+    /* `semua[0]` bertipe `Episode | undefined` karena
+     * `noUncheckedIndexedAccess`, padahal baris di atas sudah memastikan
+     * daftarnya tidak kosong. `?? null` itu tidak pernah terpakai di
+     * keadaan nyata — dan justru karena itu harus jadi `null`, bukan
+     * `undefined`: pemanggilnya menjanjikan `Episode | null`, dan
+     * `undefined` yang lolos berarti ada halaman yang memeriksa `null`
+     * lalu membaca `undefined`. */
     return (
-      (cari === null ? null : semua.find(satu => satu.nomor === cari)) ?? semua[0]
+      (cari === null ? null : semua.find(satu => satu.nomor === cari)) ?? semua[0] ?? null
     )
   })
 }
