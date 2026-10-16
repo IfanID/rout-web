@@ -1,11 +1,13 @@
 <script setup lang="ts">
-/* Beranda Running Man: satu kartu — tayang berikutnya — dan dua
- * perintah ke halaman lain.
+/* Beranda Running Man: satu kartu — tayang berikutnya — lalu pintasan
+ * ke tiga halaman lain, klip terbaru, dan tayangan live.
  *
  *   /running-man                       halaman ini
  *   /running-man/detail                informasi acara
  *   /running-man/episode               daftar episode
  *   /running-man/episode/streaming     menonton
+ *   /running-man/preview               daftar klip
+ *   /running-man/preview/:id           satu klip
  *
  * Berkasnya `index.vue`, bukan `running-man.vue`, dan itu syarat,
  * bukan gaya penulisan. Berkas `running-man.vue` tidak boleh berdiri
@@ -32,14 +34,32 @@
  * lagi kapan?". Jadwal, tentang acara, dan statistiknya semuanya
  * ada di halaman detail.
  *
- * Di bawahnya ada bagian klip — tiga yang terbaru, sisanya di
- * /running-man/preview. Datanya nyata, diambil dari SBS lewat
- * /api/running-man/clips.
+ * Di bawahnya ada bagian klip — tiga yang terlihat sekaligus, limabelas
+ * yang tersedia lewat gulir di dalam kotaknya sendiri. Datanya nyata,
+ * diambil dari SBS lewat /api/running-man/clips.
  *
  * Sifatnya berbeda dari kartu di atas: kartu menjawab pertanyaan yang
  * sudah dibawa orang, klip menawarkan yang belum terpikir olehnya.
- * Karena itu ia duduk paling bawah, dan jumlahnya dibatasi tiga — daftar
- * penuh menjawab pertanyaan lain, dan punya halamannya sendiri.
+ * Karena itu ia duduk di bawah kartu dan pintasannya, dan yang
+ * ditampilkan hanya sebagian — daftar penuh menjawab pertanyaan lain,
+ * dan punya halamannya sendiri di /running-man/preview.
+ *
+ * Ketiga klip pertama sengaja tidak menumpuk panjang ke bawah: bagian
+ * ini menawarkan, bukan mendaftar, dan limabelas baris di tengah
+ * beranda mendorong bagian live jauh ke bawah halaman. Kotaknya
+ * digulir, dan kartu keempat mengintip sedikit sebagai penanda bahwa
+ * di bawahnya masih ada isi.
+ *
+ * Di antara keduanya ada dua kartu pintasan. Dulu dua perintahnya
+ * berupa tombol yang berbagi satu baris; di layar lebar keduanya jadi
+ * dua permukaan sepanjang setengah halaman yang isinya cuma tiga kata.
+ * Sekarang keduanya berbentuk kartu berisi kalimat penjelas, supaya
+ * permukaan selebar itu punya isi yang menjelaskannya.
+ *
+ * Yang sengaja TIDAK dibuatkan kartu di situ adalah daftar klip:
+ * pintunya sudah ada di bagian "예고보기" di bawah, dan dua tautan ke
+ * halaman yang sama di satu halaman hanya menambah pilihan yang
+ * hasilnya sama.
  *
  * Paling paling bawah ada bagian live YouTube. Alamatnya bukan ditulis
  * di halaman ini, tapi dibaca dari .env, dan bagian itu hilang sendiri
@@ -48,12 +68,12 @@
  * selalu tanpa suara dulu karena itu aturan playback otomatis di
  * semua peramban; makanya ada satu kalimat kecil di bawahnya.
  *
- * Kartu dan tombol sengaja terpisah, bukan kartu yang bisa diketuk
- * seluruhnya. Kalau kartu ikut jadi tautan, isinya jadi dua perintah
- * dalam satu tempat — "ini yang akan tayang" dan "buka yang lengkap"
- * — dan kartu tidak bisa menampilkan hover tanpa ikut menyiratkan
- * bahwa ia bisa diklik. Terpisah, kartu berhenti jadi penanda dan
- * tombol jadi satu-satunya perintah di halaman ini.
+ * Kartu tayang sengaja bukan tautan. Kalau kartu ikut jadi tautan,
+ * isinya jadi dua perintah dalam satu tempat — "ini yang akan tayang"
+ * dan "buka yang lengkap" — dan kartu tidak bisa menampilkan hover
+ * tanpa ikut menyiratkan bahwa ia bisa diklik. Yang bisa diketuk di
+ * halaman ini sudah punya bentuknya sendiri: kartu pintasan di bawah
+ * kartu tayang.
  *
  * Teksnya ditulis apa adanya di template, dalam Bahasa Indonesia,
  * tanpa menambah kunci locale baru — aturan teks dummy di AGENTS.md.
@@ -76,9 +96,84 @@ definePageMeta({
   key: route => route.fullPath
 })
 
-const { acara, berikutnya, statistik } = useRunningMan()
-
 const localePath = useLocalePath()
+
+const { locale } = useI18n()
+
+/* Jadwal tayang episode berikutnya — nomor dan tanggalnya.
+ *
+ * Dua-duanya datang dari SBS lewat `useRunningManJadwal()`, bukan ditulis
+ * di sini: nomornya naik sendiri begitu episodenya muncul di 다시보기,
+ * dan tanggalnya digeser seminggu sendiri kalau minggu itu memang tidak
+ * ada tayangan. Aturannya di `server/utils/running-man/jadwal.ts`.
+ *
+ * Boleh `null` kalau permintaannya gagal; di kartu, bagian episode dan
+ * tanggalnya disembunyikan kalau begitu — lihat catatan di templatenya. */
+const jadwal = await useRunningManJadwal()
+
+/* Nomor tayang berikutnya, jadi yang sudah tayang bisa dihitung: satu less.
+ *
+ * Yang dikembalikan hanya bentuk angkanya, bukan objek jadwalnya, karena
+ * yang dibutuhkan `useRunningMan` memang cuma angka itu. `null` kalau
+ * jadwalnya tidak diketahui — dan itu diteruskan apa adanya ke bawah, bukan
+ * diisi angka cadangan. */
+const jadwalNomor = computed(() => jadwal.value?.nomor ?? null)
+
+/* Dipanggil setelah `jadwal`, bukan sebelumnya: jumlah episode sudah tayang
+ * dihitung dari nomor tayang berikutnya, jadi halaman ini yang tahu urutan
+ * pemanggilannya. */
+const { acara, jamTayang, selisihWib, episodeTercetak } = useRunningMan(
+  jadwalNomor
+)
+
+/* Tanggalnya dibentuk DI SINI, bukan dikirim jadi dari server.
+ *
+ * Yang datang dari server adalah tanggal ISO, dan nama hari serta nama
+ * bulannya bergantung bahasa yang sedang dibaca — aturan yang sama
+ * dipakai tanggal klip di PreviewList.vue. Kalau server yang mengirim
+ * "Minggu, 18 Oktober 2026", pembaca `/en` dan `/ko` ikut kebagian teks
+ * Indonesia.
+ *
+ * `T00:00:00` sengaja ditambahkan, sama seperti di PreviewList.vue:
+ * tanpa itu `new Date('2026-10-18')` dibaca sebagai tengah malam UTC dan
+ * di wilayah yang sehari lebih ke belakang tanggalnya bergeser ke 17.
+ *
+ * Pembuat formatnya dibuat sekali per bahasa, bukan sekali per render. */
+const formatHari = computed(
+  () =>
+    new Intl.DateTimeFormat(locale.value, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+)
+
+const hariTayang = computed(() =>
+  jadwal.value
+    ? formatHari.value.format(new Date(`${jadwal.value.tanggal}T00:00:00`))
+    : ''
+)
+
+/* Jam tayangnya dalam dua zona, dihitung dari satu angka.
+ *
+ * `JAM_TAYANG` menyimpan jam Korea — itu yang tertulis di halaman SBS —
+ * dan WIB-nya dikurangi `selisihWib`. Menyimpan dua tulisan jam sekaligus
+ * berarti dua tempat yang harus diubah begitu SBS mengganti jadwalnya.
+ *
+ * Pengurangan itu tidak pernah memindahkan tanggalnya: selisihnya cuma
+ * dua jam, dan tayangannya sore — 18.10 KST jadi 16.10 WIB, hari yang
+ * sama. Kalau suatu saat SBS memindahkan jam tayangnya ke dini hari,
+ * tanggal di kartunya harus ikut dihitung ulang. */
+const duaAngka = (nilai: number) => String(nilai).padStart(2, '0')
+
+const jamWib = computed(
+  () => `${jamTayang.jam - selisihWib}.${duaAngka(jamTayang.menit)} WIB`
+)
+
+const jamKst = computed(
+  () => `${jamTayang.jam}.${duaAngka(jamTayang.menit)} KST`
+)
 
 /* Live YouTube, dibaca dari .env lewat runtimeConfig.
  *
@@ -94,15 +189,24 @@ const localePath = useLocalePath()
  * kotak yang tidak bisa memutar apa pun. */
 const liveYoutube = useRuntimeConfig().public.youtubeLive.trim()
 
-/* Klip tayang, tiga yang terbaru.
+/* Klip tayang: limabelas, tiga yang terlihat sekaligus.
  *
  * Datanya nyata, dari SBS lewat /api/running-man/clips — bukan dummy.
- * Keputusan kenapa tiga dan kenapa diletakkan paling bawah ada di catatan
- * bagiannya di bawah, bukan di sini.
+ *
+ * Angka ini TIDAK menentukan berapa yang terlihat. Yang terlihat tiga,
+ * dan itu diatur lewat bentuk `gulir` pada `PreviewList`: tingginya
+ * dibatasi tiga kartu, sisanya digulir di dalam kotaknya. Limabelas
+ * masih di bawah jatah `HALAMAN_BERANDA` (20), jadi menaikkannya tidak
+ * menambah satu pun permintaan ke SBS.
+ *
+ * Kenapa tidak tiga saja: bagian ini bukan daftar yang dibaca sampai
+ * habis, tapi bagian yang menawarkan tontonan. Tiga memberi contoh
+ * yang cukup untuk memutuskan, dan dua belas sisanya menunggu di
+ * kotak yang sama — tanpa mendorong bagian live jauh ke bawah.
  *
  * Halaman /running-man/preview memakai daftar yang sama persis dari
  * composable yang sama, jadi berpindah ke sana tidak meminta ulang. */
-const JUMLAH_KLIP = 3
+const JUMLAH_KLIP = 15
 
 const clips = await useRunningManClips(HALAMAN_BERANDA)
 
@@ -115,6 +219,54 @@ const klipTampil = computed(() => clips.value.slice(0, JUMLAH_KLIP))
    halaman yang urutannya sama dengan yang sedang dilihat — bukan selalu
    yang terbaru. */
 const urutan = urutanKlip(useRoute().query.urutan)
+
+/* Dua halaman lain di bawah Running Man, sebagai kartu bukan tombol.
+ *
+ * Semula halaman ini punya dua tombol di tempat yang sama: "Semua
+ * detail" dan "Semua episode". Di layar lebar keduanya berbagi lebar
+ * 552px untuk tiga kata, dan tombol sebesar itu terbaca sebagai bilah.
+ *
+ * Bentuknya kartu karena penjelasannya ikut: dengan kalimat penjelas,
+ * permukaan yang bisa diketuk jadi masuk akal sebesar itu — bukan
+ * tombol raksasa yang isinya cuma judul halaman sebelah.
+ *
+ * Halaman klip TIDAK punya kartu di sini, dan itu disengaja: daftar
+ * klip punya pintunya sendiri di bagian "예고보기" bawah, yaitu tombol
+ * "Lihat lebih banyak" yang tujuannya sama persis — `/running-man/preview`
+ * dengan urutan yang sedang dibaca. */
+const jalan = [
+  {
+    ke: localePath('running-man-detail'),
+    ikon: 'lucide:book-open',
+    /* Judulnya menyebut isi, bukan sifat halamannya. "Semua detail"
+     * tidak menjelaskan apa pun — detail tentang apa — sedangkan halaman
+     * tujuannya berisi tentang acara, anggota, dan statistik. */
+    judul: 'Info acara',
+    /* Kata "Jadwal" sengaja tidak ada: halaman detail tidak memuat
+     * jadwal sama sekali — bagiannya cuma tentang acara, anggota, dan
+     * statistik. Menulisnya di sini berarti menjanjikan isi yang tidak
+     * ada di halaman tujuan. */
+    keterangan: 'Tentang acara, anggota, dan statistik',
+    label: ''
+  },
+  {
+    /* Tanpa kartu di sini, daftar episode tidak punya pintu dari
+     * beranda sama sekali — navbar bawah tidak punya item ke sana, dan
+     * halaman lain hanya menautkan ke atas. Satu-satunya tautan lain
+     * yang menyebutnya ada di halaman streaming, dan itu hanya bisa
+     * dibuka dari halaman ini juga. */
+    ke: localePath('running-man-episode'),
+    ikon: 'lucide:list-video',
+    judul: 'Semua episode',
+    keterangan: 'Daftar episode yang bisa ditonton',
+    /* Badge di bawah keterangan, bukan teks yang ditempel di
+     * kalimatnya. Sama seperti banner di halaman episode — supaya orang
+     * tahu sebelum membuka, bukan sesudah. Warnanya ikut `.badge--info`,
+     * jadi dua tempat yang bilang hal yang sama tidak memakai dua warna
+     * berbeda. */
+    label: 'Subtitle Indonesia'
+  }
+]
 </script>
 
 <template>
@@ -145,70 +297,157 @@ const urutan = urutanKlip(useRoute().query.urutan)
       <span class="tayang__mark" aria-hidden="true">R</span>
 
       <div class="tayang__isi">
-        <!-- Label dari `.label` di main.css, sama persis dengan yang
-             dipakai di halaman detail dan halaman episode. Bentuk
-             hurufnya sama dengan `.bagian__judul` supaya seluruh
-             halaman terasa satu keluarga tipografi. -->
-        <p class="label tayang__label">Tayang berikutnya</p>
+        <!-- Baris pertama: label kecil di kiri, hitung mundurnya di
+             kanan.
+
+             Dua-duanya keterangan tentang episode yang sama — yang satu
+             bilang "ini yang berikutnya", yang satu bilang "berapa lama
+             lagi" — jadi keduanya duduk di baris yang sama, dan ruang
+             kosong di kanan label terpakai.
+
+             Baris ini yang dipilih karena cuma baris ini yang muat
+             berdua di layar 390px: labelnya 155px dan hitung mundurnya
+             sekitar 150px, sedangkan baris tanggal dan baris jam sudah
+             memakai 190–200px sendirian. Kalau dipaksa sebaris dengan
+             salah satunya, teksnya berhenti terbaca sebagai satu baris.
+
+             `flex-wrap` yang menangani sisanya: di layar yang lebih
+             sempit dari 390px, hitung mundurnya turun ke barisnya
+             sendiri — bukan meluber keluar kartu. -->
+        <div class="tayang__kepala">
+          <!-- Label dari `.label` di main.css, sama persis dengan yang
+               dipakai di halaman detail dan halaman episode. Bentuk
+               hurufnya sama dengan `.bagian__judul` supaya seluruh
+               halaman terasa satu keluarga tipografi. -->
+          <p class="label tayang__label">Tayang berikutnya</p>
+
+          <AiringCountdown
+            v-if="jadwal"
+            :tanggal="jadwal.tanggal"
+            :jam="jamTayang.jam"
+            :menit="jamTayang.menit"
+          />
+        </div>
 
         <!-- Nomor episode, bukan tanggal, yang paling besar. Ini satu-
              satunya angka besar di halaman, dan orang yang membuka
              halaman acara lebih sering mencari episode berikutnya
-             daripada tanggal lengkapnya. -->
-        <p class="tayang__episode">Episode {{ berikutnya.nomor }}</p>
+             daripada tanggal lengkapnya.
 
-        <!-- Tanggal dan jam dipisah jadi dua butir, bukan satu
-             kalimat. "Minggu, 18 Oktober 2026 · 17.50 WIB" terbaca
-             sebagai satu blok yang harus diurai, sedangkan dua butir
-             dengan ikonnya bisa dipindai satu per satu. -->
-        <ul class="tayang__jadwal">
-          <li class="tayang__jadwal-butir">
-            <Icon name="lucide:calendar-days" class="tayang__ikon" aria-hidden="true" />
-            {{ berikutnya.hari }}
-          </li>
-          <li class="tayang__jadwal-butir">
-            <Icon name="lucide:clock" class="tayang__ikon" aria-hidden="true" />
-            {{ berikutnya.jam }}
-          </li>
-        </ul>
+             `v-if` karena datanya datang dari SBS: kalau permintaannya
+             gagal, angka ini hilang dan kartunya menyisakan label dan
+             dua fakta di bawahnya — lebih baik daripada "Episode null"
+             atau kartu kosong yang terlihat seperti halaman yang belum
+             selesai dimuat. -->
+        <p v-if="jadwal" class="tayang__episode">Episode {{ jadwal.nomor }}</p>
       </div>
-    </div>
 
-    <!-- Dua perintah, urutannya sudah benar di HTML — utama lebih
-         dulu, karena "tayang lagi kapan" sudah dijawab kartu di atas
-         dan yang dicari tinggal sisanya.
+      <!-- Dua fakta tentang tayang berikutnya: hari dan jam. Satu baris
+           masing-masing, dengan ikon sebagai penandanya — tidak ada
+           label "HARI" dan "JAM" di atas tiap nilai, karena ikonnya
+           sudah mengatakan hal yang sama sambil memakan jauh lebih
+           sedikit tinggi.
 
-         Teksnya sependek mungkin. "Lihat jadwal, statistik, dan
-         semua detail" menyebut isi halaman detail di dalam tombolnya,
-         dan itu membuat tombolnya hampir sepanjang satu baris penuh
-         dengan kata-kata yang bukan perintah. Yang pendek tidak
-         membuat orang salah paham tujuan — tiap tombol sudah punya
-         ikon dan letaknya jelas. -->
-    <div class="tayang__tujuan">
-      <NuxtLink :to="localePath('running-man-detail')" class="tombol tombol--utama tayang__tombol">
-        Semua detail
-        <Icon name="lucide:arrow-right" class="tayang__ikon" aria-hidden="true" />
-      </NuxtLink>
+           Di layar sempit daftar ini memakai lebar kartu penuh, mulai
+           dari tepi kirinya. Sebelumnya ia menjorok sejajar dengan nomor
+           episode, dan itu menyisakan kolom kiri yang kosong di bawah
+           mark "R" — kartunya jadi terlihat berongga.
 
-      <NuxtLink :to="localePath('running-man-episode')" class="tombol tombol--sekunder tayang__tombol">
-        <Icon name="lucide:list" class="tayang__ikon" aria-hidden="true" />
-        Semua episode
-      </NuxtLink>
+           Di layar lebar barulah ia jadi kolom sendiri di kanan. -->
+      <ul class="tayang__jadwal">
+        <li v-if="hariTayang" class="tayang__jadwal-butir">
+          <Icon name="lucide:calendar-days" class="tayang__ikon" aria-hidden="true" />
+          {{ hariTayang }}
+        </li>
+
+        <!-- Jam tayangnya dua, dan itu disengaja: waktu Indonesia yang
+             dipakai pembacanya lebih dulu, lalu waktu Korea sebagai jam
+             aslinya — jam itulah yang tertulis di halaman SBS, dan jam
+             itu yang dipakai orang untuk mencocokkan sendiri kalau
+             jadwalnya diragukan.
+
+             Titik di antaranya `aria-hidden` supaya pembaca layar tidak
+             membacakannya sebagai "titik": dua jam itu sudah menyebut
+             zonanya masing-masing, jadi tidak ada yang perlu dijembatani
+             dengan suara.
+
+             Keduanya dihitung dari satu angka: `jamTayang` menyimpan jam
+             Korea apa adanya dari SBS, dan WIB-nya dikurangi
+             `selisihWib`. Lihat `JAM_TAYANG` di useRunningMan.ts. -->
+        <li class="tayang__jadwal-butir">
+          <Icon name="lucide:clock" class="tayang__ikon" aria-hidden="true" />
+          {{ jamWib }}
+          <span class="tayang__pemisah" aria-hidden="true">·</span>
+          <span class="tayang__jam-asli">{{ jamKst }}</span>
+        </li>
+      </ul>
     </div>
 
     <!-- Rekap seperlunya saja: satu angka yang menjawab pertanyaan
          "berapa banyak yang sudah tayang", yang tidak bisa dijawab
          kartu di atas.
 
-         Bukan grid statistik. Empat angka dalam kotak-kotak
-         bertoa jadi dasbor, dan dasbor bukan tempat orang datang
-         untuk melihat kapan acaranya tayang — tapi satu baris
-         kalimat ringan tidak berlebihan. Yang penuh sudah ada di halaman
-         detail. -->
-    <p class="running-man__rekap">
-      {{ statistik.episode.nilai }} episode sudah tayang sejak
-      {{ acara.sejak }}.
+         Bukan grid statistik. Angka dalam kotak-kotak besar jadi dasbor,
+         dan dasbor bukan tempat orang datang untuk melihat kapan acaranya
+         tayang — tapi satu baris kalimat ringan tidak berlebihan. Yang penuh
+         sudah ada di halaman detail.
+
+         `v-if` di bawah bukan sekadar hiasan: kalau SBS sedang tidak bisa
+         dihubungi, nomornya tidak diketahui dan baris ini hilang
+         seluruhnya. Angka cadangan akan tampil sebagai kepastian padahal
+         sudah basi — persis masalah yang dibawa angka mati.
+
+         Pill dari `.hitung` di main.css, bukan teks polos: bentuknya
+         langsung bilang bahwa ini angka penghitung, bukan kalimat yang
+         bisa diklik. -->
+    <p v-if="episodeTercetak" class="hitung running-man__rekap">
+      <Icon name="lucide:history" class="hitung__ikon" aria-hidden="true" />
+      <span class="hitung__angka">{{ episodeTercetak }}</span>
+      episode sudah tayang sejak {{ acara.sejak }}
     </p>
+
+    <!-- ===== Halaman lain ======================================== -->
+
+    <!-- Dua pintu ke halaman lain di bawah Running Man. Urutannya
+         sudah benar: setelah "tayang lagi kapan", yang paling sering
+         ditanyakan adalah "episode mana yang bisa ditonton".
+
+         Keduanya `NuxtLink`, bukan tombol dengan JavaScript — pilihan
+         orang ada di URL, dan halamannya bisa menampilkan isi yang
+         benar sejak dimuat.
+
+         Tidak ada kartu untuk daftar klip: halaman itu sudah punya
+         tombol "Lihat lebih banyak" di bagian bawah, dengan tujuan
+         yang sama persis. -->
+    <section class="bagian">
+      <h2 class="bagian__judul">Jelajahi</h2>
+
+      <ul class="jalan__daftar">
+        <li v-for="satu in jalan" :key="satu.judul">
+          <NuxtLink :to="satu.ke" class="jalan__kartu">
+            <span class="jalan__ikon" aria-hidden="true">
+              <Icon :name="satu.ikon" />
+            </span>
+
+            <span class="jalan__isi">
+              <span class="jalan__judul">{{ satu.judul }}</span>
+              <span class="jalan__keterangan">{{ satu.keterangan }}</span>
+
+              <!-- Badge di bawah keterangan, dan hanya kalau kartunya
+                   punya. Kartu "Info acara" tidak punya label, jadi
+                   badge-nya tidak dirender di sana — bukan dirender
+                   kosong. -->
+              <span v-if="satu.label" class="badge badge--info jalan__label">
+                <Icon name="lucide:languages" class="jalan__label-ikon" aria-hidden="true" />
+                {{ satu.label }}
+              </span>
+            </span>
+
+            <Icon name="lucide:arrow-right" class="jalan__panah" aria-hidden="true" />
+          </NuxtLink>
+        </li>
+      </ul>
+    </section>
 
     <!-- ===== Klip tayang ========================================= -->
 
@@ -221,12 +460,16 @@ const urutan = urutanKlip(useRoute().query.urutan)
 
       <PreviewSort />
 
-      <PreviewList :daftar="klipTampil" />
+      <!-- Bentuk `gulir`: kotaknya setinggi tiga kartu, sisanya digulir
+           di dalamnya. Lihat catatan `bentuk` di PreviewList.vue untuk
+           kenapa tingginya dibatasi dan kenapa kartu berikutnya
+           sengaja mengintip sedikit. -->
+      <PreviewList :daftar="klipTampil" bentuk="gulir" />
 
       <!-- Satu-satunya perintah di bagian ini, dan sengaja di bawah
-           daftarnya. Orang yang sudah membaca tiga baris dan ingin
-           sisanya baru menekan ini — dan saat menekannya, dia sudah
-           tahu isinya akan seperti apa. -->
+           kotak klipnya. Orang yang sudah melihat tiga baris pertama
+           dan ingin sisanya baru menekan ini — dan saat menekannya, dia
+           sudah tahu isinya akan seperti apa. -->
       <NuxtLink
         :to="localePath({ name: 'running-man-preview', query: { urutan } })"
         class="tombol tombol--sekunder lebih"
@@ -255,10 +498,17 @@ const urutan = urutanKlip(useRoute().query.urutan)
            jadi id video. Tayangan mulai sendiri begitu halaman ini
            terbuka, jadi tidak ada tombol untuk ditekan. Catatan soal
            suaranya ikut di komponen itu, karena yang bicara tentang
-           player adalah player-nya sendiri. -->
+           player adalah player-nya sendiri.
+
+           Batas lebarnya dipasang di komponennya, bukan di
+           bagiannya. Kalau bagiannya yang dibatasi, judul "Live di
+           YouTube" ikut terdorong ke tengah dan berhenti segaris
+           dengan judul bagian lain di halaman ini — padahal yang
+           perlu dikunci lebarnya cuma videonya. -->
       <LivePlayer
         :sumber="liveYoutube"
         judul="Live Running Man di YouTube"
+        class="live-bagian"
       />
     </section>
   </main>
@@ -276,13 +526,15 @@ const urutan = urutanKlip(useRoute().query.urutan)
 
 /* --- Kartu tayang -------------------------------------------- */
 
-/* Grid dengan kolom mark dan kolom isi.
+/* Grid tiga kolom di layar lebar: mark, episode, jadwal.
+ *
+ * Di layar sempit jadwal turun ke baris kedua, jadi kolom kedua
+ * (`grid-column` di bawah) yang menahannya. Kalau tidak ditulis
+ * eksplisit, anak ketiga akan mendarat di kolom pertama baris kedua —
+ * tepat di bawah mark — dan tanggalnya jadi tampak dimiliki mark.
  *
  * `flex-wrap` sengaja tidak dipakai. Kartu ini hanya satu, jadi
- * tidak ada layout sempit yang perlu dilindungi — dan kalau mark
- * turun ke baris sendiri di layar kecil, isinya ikut menyempit
- * jadi pil yang memanjang, yang justru lebih buruk daripada mark
- * yang berputar ke baris kedua.
+ * tidak ada layout sempit yang perlu dilindungi.
  *
  * Padding dan jaraknya memakai `clamp`, bukan angka tetap. Di 360px
  * kartu ini kehilangan hampir seperempat lebar layarnya: padding
@@ -293,27 +545,27 @@ const urutan = urutanKlip(useRoute().query.urutan)
  * lebar angkanya tidak berubah. */
 .tayang {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: clamp(0.875rem, 3.5vw, 1.25rem);
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
+  gap: clamp(0.875rem, 3.5vw, 1.25rem);
 
   margin-top: 2rem;
   padding: clamp(1.125rem, 4vw, 1.75rem);
 
   /* Garis aksen setebal 3px di tepi atas.
-     *
-     * Penanda ini yang membuat kartu ini terbaca sebagai "yang
-     * berikutnya terjadi", bukan sekadar informasi. Tapi penanda ini bukan
-     * latar penuh: latar cyan memenuhi separuh kartu dan berubah
-     * jadi blok warna yang bersaing dengan angka episode. Garis tipis
-     * memberi tanda yang sama dengan bobot yang lebih rendah. */
+   *
+   * Penanda ini yang membuat kartu ini terbaca sebagai "yang
+   * berikutnya terjadi", bukan sekadar informasi. Tapi penanda ini bukan
+   * latar penuh: latar cyan memenuhi separuh kartu dan berubah
+   * jadi blok warna yang bersaing dengan angka episode. Garis tipis
+   * memberi tanda yang sama dengan bobot yang lebih rendah. */
   border-top: 3px solid var(--aksen-indikator);
 }
 
 /* Kartu ini tidak bisa diklik ke mana pun, tapi `.kartu` dari
  * main.css mengubah warna garis saat hover. Hover itu sinyal "ini
  * punya tujuan", dan di sini tidak ada tujuan — kartu bukan tautan,
- * dan yang menuju halaman lain adalah tombol di bawahnya. */
+ * dan yang menuju halaman lain adalah bagian Jelajahi di bawahnya. */
 .tayang:hover {
   border-top-color: var(--aksen-indikator);
   border-right-color: var(--garis-halus);
@@ -363,84 +615,252 @@ const urutan = urutanKlip(useRoute().query.urutan)
   font-variant-numeric: tabular-nums;
 }
 
-/* Daftar tanggal dan jam. Jarak antar butir lebih rapat dari jarak
- * daftar keterangan di main.css — ini dua baris yang dibaca sebagai
- * satu kelompok, bukan dua keterangan terpisah. */
-.tayang__jadwal {
+/* --- Hitung mundur -------------------------------------------- */
+
+/* Baris pertama kartu: label di kiri, hitung mundurnya di kanan.
+ *
+ * `space-between` yang mendorong hitung mundurnya ke tepi kanan, dan
+ * `flex-wrap` yang menurunkannya ke baris sendiri di layar yang lebih
+ * sempit dari 390px. Saat itu terjadi, yang tersisa di barisnya cuma
+ * hitung mundurnya — dan `space-between` dengan satu anak menaruhnya di
+ * KIRI, bukan menggantung di kanan baris yang sendirian.
+ *
+ * `align-items: baseline`, bukan `center`: keduanya teks, dan dua teks
+ * yang duduk sebaris harus bertumpu pada garis yang sama — dengan
+ * `center` yang satu terlihat naik sedikit dari yang lain. */
+.tayang__kepala {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem 1.25rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
 
-  margin-top: 0.75rem;
+/* --- Jadwal tayang -------------------------------------------- */
+
+/* Tiga baris fakta: hari, jam, dan sisa waktunya.
+ *
+ * Di layar sempit daftar ini memakai LEBAR KARTU PENUH — `grid-column`
+ * 1 sampai -1, bukan kolom kedua. Sebelumnya ia sejajar dengan nomor
+ * episode, dan hasilnya kolom kiri di bawah mark "R" menganggur kosong
+ * sementara sisi kanannya berisi empat baris. Lebar penuh membuat
+ * kartunya terbaca sebagai dua bagian: kepala di atas, fakta di bawah.
+ *
+ * Jarak antar barisnya rapat, dan lebih rapat daripada jarak di
+ * halaman lain: tiga baris ini dibaca sebagai satu kelompok, bukan
+ * sebagai daftar yang butirnya perlu dipisah-pisah. */
+.tayang__jadwal {
+  grid-column: 1 / -1;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Satu fakta, satu baris: ikon lalu nilainya.
+ *
+ * Tidak ada label huruf besar di atas nilainya, dan itu keputusan
+ * sesudah melihatnya di layar sempit: "HARI" di atas tanggal dan "JAM"
+ * di atas jam menambah dua baris tinggi untuk mengatakan hal yang sudah
+ * dikatakan ikonnya. Yang tersisa sekarang lima baris untuk seluruh
+ * kartu, dari yang tadinya tujuh.
+ *
+ * `line-height: 1.4`, bukan 1.6 warisan body: baris-baris ini dibaca
+ * sebagai daftar yang rapat, bukan sebagai paragraf. */
 .tayang__jadwal-butir {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
 
-  font-size: 0.875rem;
-  color: var(--teks-sekunder);
+  min-width: 0;
+
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--teks-utama);
 }
 
-/* --- Tombol -------------------------------------------------- */
-
-/* Dua tombol berbagi lebar, bukan menumpuk.
- *
- * Menumpuknya membuat halaman jadi dua kali lebih tinggi dari yang
- * perlu — padahal isinya cuma satu kartu. Berbagi lebar
- * sekaligus memperjelas urutannya tetap terbaca sebagai utama-lalu-
- * kedua, karena yang utama lebih terang dan yang kedua garisnya
- * tetap tipis.
- *
- * `flex-wrap` yang menentukan kapan keduanya turun ke baris masing-
- * masing di layar sempit, bukan media query. */
-.tayang__tujuan {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-
-  margin-top: 1rem;
+/* Titik pemisah antara jam WIB dan jam KST. Warnanya mengikuti teks
+ * redup di sebelahnya, bukan warna utama — ia cuma pemisah, bukan
+ * nilai. */
+.tayang__pemisah {
+  color: var(--teks-lembut);
 }
 
-.tayang__tombol {
-  flex: 1 1 10rem;
-  justify-content: center;
-
-  /* Transisi ditulis ulang lengkap, bukan `transition: transform`.
-     `.tombol` di main.css sudah punya daftar-nya sendiri, dan menulis
-     hanya `transform` berarti daftar itu ikut hilang — tombol jadi
- * kehilangan perubahan warna yang memang kerjaannya. */
-  transition:
-    background var(--transisi),
-    border-color var(--transisi),
-    color var(--transisi),
-    transform var(--transisi);
+/* Jam aslinya (KST), menyusul di sebelah jam WIB.
+ *
+ * Satu tingkat lebih kecil dan lebih redup dari nilai di sebelahnya, dan
+ * itu memang yang diinginkan: waktu Indonesia yang dipakai pembacanya,
+ * waktu Korea cuma keterangan tambahan — kalau keduanya sama besar, dua
+ * jam berbeda di satu baris terbaca seperti dua jadwal yang berbeda. */
+.tayang__jam-asli {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--teks-lembut);
 }
 
-/* Umpan balik saat ditekan, untuk ketiga tombol halaman ini.
+/* Di layar lebar fakta-fakta itu jadi kolom sendiri di kanan, dan
+ * dipisahkan garis rambut dari nomor episode.
  *
- * Tanpa itu, di layar sentuh tombolnya terasa tidak ditekan sama
- * sekali: tekanannya baru terlihat setelah halaman berpindah, dan di
- * koneksi lambat itu bisa beberapa detik. Satu piksel ke bawah cukup —
- * yang dicari bukan gerakan, tapi bukti tombol itu memang ditekan. */
-.tayang__tombol:active,
-.lebih:active {
-  transform: translateY(1px);
+ * Kolom teksnya ikut melebar karena `minmax(0, 1fr)`, dan jadwal ikut
+ * diamankan sampai 18rem — angka episode tetap sebesar di layar
+ * sempit, dan tanggal punya tempatnya sendiri.
+ *
+ * `48rem` adalah breakpoint yang sudah dipakai proyek ini: di bawah
+ * itu tiga kolom ini tidak muat tanpa tanggal pecah jadi dua baris,
+ * dan tanggal yang pecah justru yang paling sulit dibaca. */
+@media (min-width: 48rem) {
+  .tayang {
+    grid-template-columns: auto minmax(0, 1fr) minmax(13rem, 18rem);
+    gap: 0 1.5rem;
+  }
+
+  .tayang__jadwal {
+    grid-column: 3;
+
+    gap: 0.75rem;
+
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--garis-halus);
+  }
 }
 
 /* --- Rekap ---------------------------------------------------- */
 
-/* Satu kalimat di bawah tombol, redup dan rapat. Isinya cuma jumlah
- * episode, yang tidak ada di kartu — tapi cukup kecil supaya tidak
- * episode, dan cukup kecil supaya tidak jadi bagian yang meminta
- * perhatian. */
+/* Tepat di bawah kartu tayang, jadi jaraknya cukup dekat untuk
+ * terbaca sebagai keterangan dari kartu itu — bukan sebagai bagian
+ * tersendiri yang kebetulan terpisah. */
 .running-man__rekap {
-  margin-top: 1.25rem;
+  margin-top: 1rem;
+}
+
+/* --- Kartu halaman lain --------------------------------------- */
+
+/* Baris penuh di layar sempit dan di tablet, dua kolom di laptop.
+ *
+ * `auto-fit`, bukan jumlah kolom tetap: isi daftar ini bisa dua atau
+ * tiga, dan jumlah tetap menyisakan sel kosong yang menggantung di
+ * ujung baris begitu isinya berkurang — tanpa error apa pun, hanya
+ * kartunya yang berhenti setengah jalan.
+ *
+ * Satu breakpoint, bukan tiga. Di tablet (48rem–64rem) kartu sempit
+ * hanya menghasilkan keterangan yang pecah tiga baris, dan satu kartu
+ * yang menggantung sendirian di baris kedua — dua-duanya lebih buruk
+ * daripada baris penuh yang terbaca sebagai daftar menu. */
+.jalan__daftar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 64rem) {
+  .jalan__daftar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+/* Permukaannya ditulis sendiri, bukan memakai `.kartu`.
+ *
+ * `.kartu` menyertakan `:hover` yang menebalkan garis tanpa memberi
+ * tahu arahnya. Di sini hover-nya sudah punya arti sendiri: kartu ini
+ * menuju halaman lain, dan arahnya sudah jelas dari panah di kanan. */
+.jalan__kartu {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.875rem;
+
+  padding: 1rem 1.125rem;
+
+  background: var(--latar-naik-2);
+  border: 1px solid var(--garis-halus);
+  border-radius: var(--radius-besar);
+
+  color: inherit;
+  text-decoration: none;
+
+  transition: background var(--transisi), border-color var(--transisi);
+}
+
+.jalan__kartu:hover {
+  background: var(--latar-naik-3);
+  border-color: var(--garis-sedang);
+}
+
+/* Ikon dalam kotak, supaya kartu ini punya titik berat di kiri dan
+ * tidak terasa seperti baris teks biasa yang bisa diklik. */
+.jalan__ikon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-sedang);
+
+  background: var(--aksen-latar);
+  color: var(--teks-aksen);
+
+  font-size: 1.125rem;
+}
+
+.jalan__isi {
+  display: block;
+  min-width: 0;
+}
+
+.jalan__judul {
+  display: block;
+
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--teks-utama);
+}
+
+.jalan__keterangan {
+  display: block;
+
+  margin-top: 0.125rem;
   font-size: 0.8125rem;
+  line-height: 1.4;
   color: var(--teks-lembut);
+}
+
+/* Badge di bawah keterangan. Jaraknya milik badge ini, bukan milik
+ * keterangan — kartu yang tidak punya label ("Info acara") tidak boleh
+ * ikut berjarak seolah-olah ada badge yang disembunyikan. */
+.jalan__label {
+  margin-top: 0.375rem;
+}
+
+/* Ikon ikut ukuran teks badge-nya. Kelasnya diletakkan langsung di
+ * `<Icon>`, bukan lewat `:deep(svg)` — lihat catatan yang sama di
+ * `.meta__ikon` di main.css. */
+.jalan__label-ikon {
+  font-size: 0.875rem;
+}
+
+/* Panah di kanan baris. Redup sampai hover — di daftar tiga baris,
+ * tiga panah aksen sekaligus lebih berisik daripada menunjuk. */
+.jalan__panah {
+  font-size: 1rem;
+  color: var(--teks-lembut);
+  transition: color var(--transisi), transform var(--transisi);
+}
+
+.jalan__kartu:hover .jalan__panah {
+  color: var(--teks-aksen);
+  transform: translateX(2px);
 }
 
 /* --- Pratinjau ------------------------------------------------ */
@@ -457,14 +877,25 @@ const urutan = urutanKlip(useRoute().query.urutan)
 
   margin-top: 1rem;
 
-  /* Daftar transisinya sama persis dengan `.tayang__tombol` di atas,
-     dengan alasan yang sama: `.tombol` sudah punya daftar sendiri, dan
-     menimpanya dengan `transform` saja akan menghapus bagian itu. */
+  /* Daftar transisinya ditulis lengkap, bukan `transform` saja.
+     `.tombol` di main.css sudah punya daftar sendiri, dan menimpanya
+     dengan satu properti berarti daftar itu ikut hilang — tombol jadi
+     kehilangan perubahan warna yang memang kerjaannya. */
   transition:
     background var(--transisi),
     border-color var(--transisi),
     color var(--transisi),
     transform var(--transisi);
+}
+
+/* Umpan balik saat ditekan.
+ *
+ * Tanpa itu, di layar sentuh tombolnya terasa tidak ditekan sama
+ * sekali: tekanannya baru terlihat setelah halaman berpindah, dan di
+ * koneksi lambat itu bisa beberapa detik. Satu piksel ke bawah cukup —
+ * yang dicari bukan gerakan, tapi bukti tombol itu memang ditekan. */
+.lebih:active {
+  transform: translateY(1px);
 }
 
 /* --- Ikon ---------------------------------------------------- */
@@ -479,6 +910,27 @@ const urutan = urutanKlip(useRoute().query.urutan)
  * `.meta__ikon` di main.css. */
 .tayang__ikon {
   font-size: 1rem;
+}
+
+/* --- Live ----------------------------------------------------- */
+
+/* Video live dikunci lebarnya di layar lebar, sama seperti player
+ * di halaman streaming dan di halaman satu klip.
+ *
+ * Tanpa ini ia mengikuti `--lebar-konten` (72rem = 1152px) dan
+ * rasio 16:9 menjadikannya setinggi 648px — setengah tinggi monitor
+ * untuk satu video live.
+ *
+ * Batas dan pemusatannya di sini, bukan di `LivePlayer`: `.live__layar`
+ * selalu mengikuti lebar induknya, jadi yang menentukan lebarnya
+ * adalah halaman yang memakai komponen itu. Dipasang pada KOMPONENNYA
+ * dan bukan pada `<section>`-nya, supaya judul bagian tetap segaris
+ * dengan judul bagian lain di halaman ini. */
+@media (min-width: 48rem) {
+  .live-bagian {
+    max-width: 56rem;
+    margin-inline: auto;
+  }
 }
 
 /* --- Subjudul ------------------------------------------------- */
@@ -503,9 +955,9 @@ const urutan = urutanKlip(useRoute().query.urutan)
  * hanya memberi tahu apa yang berubah, jadi matikan kalau pemakai
  * meminta. */
 @media (prefers-reduced-motion: reduce) {
-  .tayang__tombol,
   .lebih,
-  .tayang__ikon {
+  .jalan__kartu,
+  .jalan__panah {
     transition: none;
   }
 }

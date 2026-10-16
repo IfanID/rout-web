@@ -20,6 +20,12 @@
  *  Mengembalikan larik kosong kalau gagal atau kunci API kosong. Pemanggil
  *  yang belum siap menampilkan larik kosong wajib menyembunyikan
  *  bagiannya — bukan menampilkan judul dengan isi kosong di bawahnya.
+ *
+ *  **Label pribadi ikut dari server**, bukan dari composable ini. Yang
+ *  abyss berikan hanya videonya; labelnya disimpan di
+ *  `data/running-man-label.json` dan disisipkan server ke setiap episode
+ *  sebelum dikirim, jadi bentuknya sudah ada di `Episode` itu sendiri.
+ *  Tidak ada daftar episode yang tertulis di kode.
  */
 
 import type { Ref } from 'vue'

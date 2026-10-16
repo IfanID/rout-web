@@ -36,7 +36,21 @@
 
 const { t } = useI18n()
 
-const { acara, tentang, statistik } = useRunningMan()
+/* Jadwal tayang episode berikutnya, hanya untuk jumlah episodenya.
+ *
+ * Angka "822 Episode" di bagian statistik dulu ditulis tangan, dan itulah
+ * yang membuatnya basi tanpa ada yang memberitahu. Sekarang dihitung dari
+ * nomor tayang berikutnya — satu less — dan ikut hilang kalau SBS sedang
+ * tidak bisa dihubungi, karena `v-for` di bawah membaca larik yang sudah
+ * tidak memuat baris itu.
+ *
+ * Permintaan ini di-cache server sepuluh menit, jadi halaman detail yang
+ * memanggilnya di halaman beranda tidak menambah beban yang berarti. */
+const jadwal = await useRunningManJadwal()
+
+const { acara, tentang, episodeTercetak } = useRunningMan(
+  computed(() => jadwal.value?.nomor ?? null)
+)
 
 /* --- Data anggota cast -----------------------------------------
  *
@@ -88,8 +102,33 @@ interface Anggota {
    * hilang saat teksnya diambil dari `castdsc` yang berupa HTML.
    */
   karier: string[]
-  /** URL foto dari CDN SBS. */
+  /**
+   * URL foto dari CDN SBS.
+   *
+   * Boleh kosong untuk anggota yang tidak pernah ada di halaman cast
+   * SBS — lihat `keluar` di bawah. Foto kosong tidak diisi dengan
+   * gambar lain: yang tidak ada di SBS tidak bisa dikarang dari CDN
+   * yang sama.
+   */
   foto: string
+  /**
+   * Kapan ia berhenti jadi anggota, format `YYYY-MM-DD`.
+   *
+   * Yang ditulis adalah tanggal **pengumuman** keluar, bukan tanggal
+   * tayang episode terakhir. Alasannya satu: tanggal episode terakhir
+   * tidak bersumber sama-rata — untuk 이광수 dan 전소민 yang ada
+   * tanggal pengumuman resmi, sementara tayang terakhirnya tidak
+   * tercatat di satu tempat pun yang dipakai di sini. Kalau satu orang
+   * ditulis dengan tanggal tayang dan yang lain dengan tanggal pengumuman,
+   * dua angka itu jadi tidak sebanding.
+   *
+   * Boleh ditulis `YYYY` saja kalau tanggal persisnya tidak ada
+   * sumbernya — Lizzy hanya sampai ke tahun. Tahun saja lebih baik
+   * daripada tanggal yang ditebak.
+   *
+   * Field ini hanya diisi untuk yang sudah keluar. Anggota yang masih
+   * aktif tidak punya tanggal, jadi tidak ada yang perlu ditulis.
+   */
   /**
    * Masih jadi anggota Running Man per Oktober 2026.
    *
@@ -98,13 +137,28 @@ interface Anggota {
    * 14 Oktober 2026) yang menyebut susunan tujuh orang: 유재석, 지석진,
    * 김종국, 하하, 송지효, 양세찬, 지예은.
    *
-   * Kenapa perlu ada: SBS tidak pernah memperbarui halamannya. 이광수
-   * dan 전소민 masih tercantum di sana padahal sudah keluar, sementara
-   * 지예은 yang bergabung sejak 2024 tidak tercantum sama sekali.
+   * Kenapa perlu ada: SBS tidak pernah memperbarui halamannya. Terakhir
+   * dicek 16 Oktober 2026, cast SBS hanya mengembalikan enam orang —
+   * 지예은 yang bergabung sejak 2024 tidak ada di sana, dan 이광수
+   * maupun 전소민 sudah dihapus meski profil keduanya sudah diambil.
    * Tanpa penanda ini, 김종국 dan 송지효 akan terbaca sebagai anggota
    * yang sudah tidak aktif — padahal keduanya masih tayang.
    */
   aktif: boolean
+  /** Tanggal keluar, `YYYY-MM-DD` atau `YYYY`. Lihat catatan di atas. */
+  keluar?: string
+  /**
+   * Atribusi foto: namaFotografer / asal / lisensi.
+   *
+   * Wajib diisi kalau fotonya bukan dari SBS. Lisensi Creative Commons
+   * mengizinkan pemakaian ulang, tapi tetap menyebut siapa
+   * fotografernya dan lisensinya — tanpa itu pemakaian ulang itu
+   * melanggar syarat lisensi, sama sahnya dengan memakai tanpa izin.
+   *
+   * Isinya nama dan nama lisensi, bukan kalimat, jadi tidak perlu
+   * diterjemahkan. Label "Foto"-nya yang ikut bahasa pemakai.
+   */
+  kredit?: string
 }
 
 const ANGGOTA: Anggota[] = [
@@ -201,7 +255,8 @@ const ANGGOTA: Anggota[] = [
       "2014년 드라마 SBS “괜찮아 사랑이야”",
     ],
     foto: "https://img2.sbs.co.kr/img/sbs_cms/WE/2021/01/15/Emx1610676161738-300-300.jpg",
-    aktif: false
+    aktif: false,
+    keluar: '2021-04-27'
   },
   {
     kunci: "yangsechan",
@@ -231,7 +286,135 @@ const ANGGOTA: Anggota[] = [
       "2013년 드라마 MBC “오로라 공주”",
     ],
     foto: "https://img2.sbs.co.kr/img/sbs_cms/WE/2021/01/15/86o1610676342528-300-300.jpg",
-    aktif: false
+    aktif: false,
+    keluar: '2023-10-23'
+  },
+  /* Tiga anggota berikut berbeda dari yang di atasnya dalam satu hal
+   * saja: tidak ada di halaman cast SBS sama sekali, sehingga tidak ada
+   * foto, sapaan, deskripsi, maupun karier yang bisa diambil dari sana.
+   *
+   * Mereka tetap memakai baris yang sama supaya tidak menjadi kelompok
+   * tersendiri — pemisahnya sudah jelas dari isi baris: yang punya
+   * profil punya foto dan uraian, yang tidak punya tidak. Memindahkannya
+   * ke daftar terpisah justru memaksa halaman memakai dua bentuk
+   * untuk satu kelompok yang sama.
+   *
+   * Yang boleh ditulis untuk mereka hanya nama Korea, nama latin, dan
+   * tahun berhenti. Sisanya berarti mengarang isinya.
+   *
+   * Tahun berhenti diambil dari sumber per orang:
+   *
+   * - 송중기 — "지난 5월초 하차" (엑스포츠뉴스, 5 Oktober 2011); en.wikipedia
+   *   "Running Man (TV program)" mencatat episode 1–41
+   * - 리지 (Lizzy, 박수영 dari grup After School) — en.wikipedia: episode
+   *   18–25, 2010–2011, berhenti karena jadwal grup
+   * - 개리 — en.wikipedia: episode 1–324, 2010–2016; Naver 30 Januari 2017
+   *   menulis "'런닝맨' 개리 또 출연… '하차 한 거 맞아?'" saat ia tampil
+   *   lagi sebagai tamu
+   *
+   * 강호동 sengaja tidak ada di sini. Semula ia sempat ditulis sebagai
+   * anggota 2010–2011 karena OSEN 27 Desember 2011 menulis "강호동의 하차
+   * 후", tapi kalimat itu soal 강심장 — program lain di blok SBS yang
+   * sama, bukan 런NING맨. Pencarian ulang seluruh 2010–2011 tidak
+   * menemukan satu pun artikel Naver yang memuat namanya bersama
+   * 런NING맨, dan en.wikipedia tidak mencantumkannya di daftar cast.
+   *
+   * 강훈 dan 최다니엘 juga tidak: keduanya "임대 멤버", tamu
+   * beranggotakan, bukan anggota tetap. */
+  {
+    kunci: 'songjoongki',
+    nama: '송중기',
+    latin: 'Song Joong-ki',
+    /* Hanya sebagai bawaan kalau locale belum terisi — sama seperti
+     * anggota lain. Sumbernya ko.wikipedia, bukan `castdsc` SBS. */
+    karier: [
+      "2016년~ KBS2 “태양의 후예”",
+      "2020년~ tvN “빈센조”",
+      "2022년~ JTBC “재벌집 막내아들”",
+      "2019년 tvN “아스달 연대기”",
+      "2020년 SBS “승리호”",
+      "2021년 극장영화 “보고타”",
+      "2012년 KBS2 “세상 어디에도 없는 착한남자”",
+      "2012년 극장영화 “늑대소년”",
+      "2010년~ 2011년 SBS “런닝맨”",
+      "2010년 KBS2 “성균관 스캔들”"
+    ],
+    /* Foto Commons, bukan SBS — SBS tidak pernah memuatnya di halaman
+     * cast.
+     *
+     * Dipotong beforehand di `public/anggota/` dengan alasan yang sama
+     * seperti Gary: aslinya 244×393 dan wajahnya ada di bagian atas,
+     * sehingga lingkaran 56px menyisakan bahu dan dada. Pemotongan
+     * disebut di `kredit` — CC BY minta perubahan terhadap karya
+     * dicantumkan, jadi "dipotong" bukan hiasan tapi ketentuan
+     * lisensinya.
+     *
+     * Foto yang lebih dekat ke masanya sebagai anggota tidak ada di
+     * Commons; yang ada mulai 2014, tiga tahun setelah ia keluar. */
+    foto: '/anggota/song-joong-ki.jpg',
+    kredit: 'LGE / Wikimedia Commons, CC BY 2.5, dipotong',
+    aktif: false,
+    keluar: '2011-04-27'
+  },
+  {
+    kunci: 'lizzy',
+    nama: '리지',
+    latin: 'Lizzy (Park Soo-young)',
+    /* Bawaan dari en.wikipedia, yang tidak punya padanan Korea untuk
+     * sebagian judulnya. */
+    karier: [
+      "2010년~ 2011년 SBS “런닝맨”",
+      "2010년~ 2017년 플래디스 “애프터스쿨”, 서브유닛 “오렌지캐러멜”",
+      "2015년~ 2018년 “애프터스쿨 블루”",
+      "2011년 극장영화 “백마”",
+      "2014년~ 2015년 Mnet “히트메이커”",
+      "2020년 tvN “오마이베이비”"
+    ],
+    /* Potret busta, bukan foto full body.
+     *
+     * Dua foto Commons lainnya untuk dia adalah foto panjang seutuhnya
+     * tubuh: dalam lingkaran 56px dengan `object-fit: cover`, yang
+     * tersisa cuma potongan tengahnya — perut dan tangan, bukan
+     * wajah. Potret 250×320 ini muat utuh di potongan tengah, dan
+     * wajahnya persis di tengah itu.
+     *
+     * `.png` 99 KB, bukan `jpg` 34 KB. Bedanya 65 KB untuk satu baris,
+     * dan potret ini masih tajam di ukuran 56px. */
+    foto: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Park_Soo-young_in_2019.png/250px-Park_Soo-young_in_2019.png',
+    kredit: 'beautypl / Wikimedia Commons, CC BY 3.0',
+    aktif: false,
+    keluar: '2011'
+  },
+  {
+    kunci: 'gary',
+    nama: '개리',
+    latin: 'Gary',
+    /* Bawaan dari en.wikipedia. Nama aslinya 강희건. */
+    karier: [
+      "2010년~ 2016년 SBS “런닝맨”",
+      "2002년~ 리쌍",
+      "1997년 X-Teen, 1999년~ 2000년 Honey Family",
+      "2014년 디지털 싱글 “Shower Later”",
+      "2014년 디지털 싱글 “XX몰라”",
+      "2014년 KBS “응급부부”"
+    ],
+    /* Foto Commons, sudah dipotong beforehand lalu disimpan di
+     * `public/anggota/`. Yang dipotong bukan karena kesukaan: foto
+     * aslinya 338×602 penuh tubuh di panggung, dan dalam lingkaran
+     * 56px wajahnya cuma sekitar delapan piksel — terlalu kecil untuk
+     * dikenali sebagai siapa pun.
+     *
+     * Dipotong dengan tangan karena halaman tidak punya proses gambar.
+     * Server tidak bisa memotong sesuai permintaan, jadi satu-satunya
+     * tempat potongan ini bisa lahir adalah berkas di repo.
+     *
+     * Potongannya dari `Kang_Gary.jpg` (Jinho Jung, CC BY-SA 2.0) —
+     * satu-satunya potret Gary yang ada di Commons; yang kedua,
+     * `Leessang.jpg`, memuat dua orang sekaligus. */
+    foto: '/anggota/gary.jpg',
+    kredit: 'Jinho Jung / Wikimedia Commons, CC BY-SA 2.0',
+    aktif: false,
+    keluar: '2016-10-25'
   },
   {
     kunci: "jiyeoun",
@@ -267,7 +450,11 @@ const ANGGOTA: Anggota[] = [
      * soal teknis: gambar Commons berlisensi bebas, sedangkan foto di
      * CDN SBS tidak punya lisensi yang jelas untuk dipakai ulang.
      * Foto di Commons juga satu-satunya yang tersedia di sini. */
+    /* Foto dari Wikimedia Commons, bukan SBS — dia tidak ada di sana.
+     * Lisensinya CC BY-SA 4.0, jadi fotografer dan lisensinya wajib
+     * disebut. */
     foto: "https://upload.wikimedia.org/wikipedia/commons/3/34/Ji_Ye-eun.jpg",
+    kredit: 'Republic of Korea / Wikimedia Commons, CC BY-SA 4.0',
     aktif: true
   }
 ]
@@ -347,6 +534,132 @@ const anggota = ANGGOTA.map(satu => {
     karier: urutTahun(lampiran('karier', satu.karier))
   }
 })
+/** Anggota dipisah menjadi dua kelompok: yang masih aktif, dan yang
+ *  sudah keluar.
+ *
+ *  Dipisah dengan datanya sendiri, bukan dengan `v-if` di dalam satu
+ *  daftar: begitu yang sudah keluar tidak lagi bercampur dengan yang
+ *  masih ada, badge status di tiap baris menjadi pengulangan — tujuh
+ *  baris bertulis "Aktif" di bawah judul "Aktif" — dan menghapusnya
+ *  menghilangkan satu hal, bukan informasi.
+ *
+ *  Urutannya mengikuti urutan `ANGGOTA`, jadi penyusunan di blok data
+ *  masih menentukan urutan di dalam tiap kelompok.
+ *
+ *  Kelompok yang kosong DIBUANG, bukan.dirender dengan judul tanpa isi:
+ *  kalau suatu saat semua anggota ternyata aktif, halaman tidak akan
+ *  menampilkan bagian "Sudah keluar" yang tidak berisi apa pun.
+ *
+ *  `judul` menyimpan kunci locale, bukan teksnya, supaya `t()` dipanggil
+ *  di template dan ikut berubah kalau bahasa berganti. */
+/* Tanggal keluar jadi tulisan yang mengikuti bahasa pemakai.
+ *
+ * `Intl` yang dipakai, bukan daftar nama bulan dan hari yang ditulis
+ * sendiri: nama bulan dan hari punya bentuk berbeda di setiap bahasa —
+ * `April` di id dan en, tapi `4월` di ko — dan daftar itu harus_notify
+ * orang untuk memperbarui setiap kali locale bertambah.
+ *
+ * Yang ditanyakan ke `Intl` sekaligus tanggal, bulan, tahun, DAN nama
+ * hari, karena permintaannya memang semuanya: tanggal saja terasa
+ * seperti nomor seri tanpa konteks, dan hari인트inya sudah tersedia
+ * gratis di locale yang sama.
+ *
+ * `T00:00:00` dipakai eksplisit supaya hasilnya dibaca sebagai waktu
+ * lokal. Tanpa itu, `new Date('2011-04-27')` dibaca sebagai tengah
+ * malam UTC, dan di sebagian zona waktu tanggalnya bergeser sehari ke
+ * belakang — 27 April jadi 26 April.
+ *
+ * Nilai yang cuma `YYYY` dikembalikan apa adanya: tidak ada tanggalnya
+ * untuk diformat, dan memformat tahun saja akan menghasilkan bentuk
+ * yang berbeda dari yang ditulis di data. */
+function formatKeluar(tanggal: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return tanggal
+
+  return new Intl.DateTimeFormat(locale.value, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date(`${tanggal}T00:00:00`))
+}
+
+const kelompokAnggota = computed(() =>
+  [
+    { kunci: 'aktif', judul: 'anggota.aktif', daftar: anggota.filter(a => a.aktif) },
+    {
+      kunci: 'keluar',
+      judul: 'anggota.keluar',
+      daftar: anggota.filter(a => !a.aktif)
+    }
+  ].filter(satu => satu.daftar.length)
+)
+
+
+const { locale } = useI18n()
+/** Satu kotak statistik, untuk bentuk larik yang dibaca `v-for`. */
+interface Statistik {
+  id: string
+  ikon: string
+  nilai: string
+  /** Kunci locale, bukan teksnya — label ikut bahasa pemakai. */
+  label: string
+}
+
+/* Angka-angka di bagian statistik.
+ *
+ * Sempat berada di `useRunningMan.ts` sebagai `STATISTIK_TETAP`, dan
+ * angka "7" di sana ditulis tangan. Dua-duanya salah: hanya halaman ini
+ * yang menampilkan bagian statistik, dan jumlah anggota harus dihitung
+ * dari `ANGGOTA` di berkas ini — bukan diketik ulang di tempat lain,
+ * karena begitu daftar cast berubah angkanya diam-diam basi, persis
+ * seperti yang pernah terjadi pada "822 episode" sebelum dihapus.
+ *
+ * Label memakai kunci locale, bukan teks jadi. Label lama ditulis apa
+ * adanya di TypeScript, sehingga kotak "Cast tetap" tetap Bahasa
+ * Indonesia di halaman berbahasa Inggris dan Korea.
+ *
+ * "Hari tayang" diambil dari ko.wikipedia: `매주 일요일 저녁 6:10 ~ 8:00`.
+ * Jamnya sendiri sudah tampil di kartu acara, jadi yang ditulis di sini
+ * cuma hari supaya kotak ini tidak mengulang isi kartu. */
+const statistik = computed<Statistik[]>(() => {
+  const terakhir = episodeTercetak.value
+  const tetap = anggota.filter(satu => satu.aktif).length
+  const keluar = anggota.length - tetap
+
+  return [
+    /* Baris episode tidak pernah ditulis mati, dan tidak muncul kalau
+     * angkanya tidak diketahui — SBS sedang tidak bisa dihubungi. */
+    ...(terakhir
+      ? [
+          {
+            id: 'episode',
+            ikon: 'lucide:tv',
+            nilai: String(terakhir),
+            label: 'statistik.episode'
+          } as Statistik
+        ]
+      : []),
+    {
+      id: 'tetap',
+      ikon: 'lucide:users',
+      nilai: String(tetap),
+      label: 'statistik.tetap'
+    },
+    {
+      id: 'keluar',
+      ikon: 'lucide:user-minus',
+      nilai: String(keluar),
+      label: 'statistik.keluar'
+    },
+    {
+      id: 'hari',
+      ikon: 'lucide:calendar-days',
+      nilai: t('statistik.minggu'),
+      label: 'statistik.hari'
+    }
+  ]
+})
+
 const localePath = useLocalePath()
 
 /** Batas baris karier yang tampil terbuka tanpa diklik.
@@ -358,8 +671,9 @@ const localePath = useLocalePath()
  *  dilewati lebih dulu.
  *
  *  Yang sudah pendek tetap terbuka — memaksa orang klik untuk melihat
- *  tiga baris terasa lebihIAF membosankan daripada menampilkannya. */
+ *  tiga baris terasa lebih membosankan daripada menampilkannya. */
 const BATAS_KARIER = 4
+
 </script>
 
 <template>
@@ -369,8 +683,8 @@ const BATAS_KARIER = 4
          Berdiri di atas judul, bukan di bawahnya: tuannya kembali ke
          beranda, jadi posisinya paling dekat dengan tempat orang
          pertama kali melihat halaman ini. -->
-    <NuxtLink :to="localePath('running-man')" class="detail__kembali">
-      <Icon name="lucide:arrow-left" class="detail__kembali-ikon" aria-hidden="true" />
+    <NuxtLink :to="localePath('running-man')" class="kembali">
+      <Icon name="lucide:arrow-left" class="kembali-ikon" aria-hidden="true" />
       Beranda Running Man
     </NuxtLink>
 
@@ -445,101 +759,159 @@ const BATAS_KARIER = 4
            kedua dan seterusnya. Alasannya sama seperti di streaming:
            di sini baris pertama berada di bawah `<h2>` yang sudah punya
            jarak sendiri, jadi tanpa garis ia menggantung. -->
-      <ul class="anggota">
-        <li v-for="(satu, id) in anggota" :key="id" class="anggota__baris">
-          <!-- Foto bukan dekorasi: orang mengenali cast lewat wajahnya, dan
-               nama Korea saja sulit dibaca orang Indonesia. Alt-nya
-               nama orang itu karena gambar ini memang memportretkan
-               orang tersebut.
+      <!-- Dua kelompok: yang masih aktif, dan yang sudah keluar. Satu
+           markup baris untuk keduanya — diputar di dalam `v-for`
+           kelompok, bukan ditulis dua kali.
 
-               Ukurannya dikunci lewat `width` dan `height` supaya baris
-               tidak bergeser selagi fotonya belum selesai dimuat — foto
-               dari CDN pihak ketiga tidak selalu tiba secepat teksnya. -->
-          <img
-            class="anggota__foto"
-            :src="satu.foto"
-            :alt="satu.latin"
-            width="56"
-            height="56"
-            loading="lazy"
-          >
+           Gaya judul kelompoknya sendiri, bukan `.label`; lihat catatan
+           di CSS — bentuk `.label` sama persis dengan
+           judul bagian, dan dua judul yang identik di halaman yang
+           sama tidak menunjukkan hierarki apa pun.
 
-          <div class="anggota__isi">
-            <div class="anggota__kepala">
-              <h3 class="anggota__nama">{{ satu.latin }}</h3>
+           Badge status per baris DIHAPUS. Sempat ada "Aktif" di tujuh
+           baris tepat di bawah judul "Aktif" — pengulangan yang tidak
+           menambah informasi, dan di layar sempit badge itulah yang
+           memenuhi baris pertama. Sekarang statusnya terbaca dari
+           kelompok tempat baris itu berada. -->
+      <template v-for="kelompok in kelompokAnggota" :key="kelompok.kunci">
+        <h3 class="anggota__kelompok">{{ t(kelompok.judul) }}</h3>
 
-              <!-- Nama Korea di bawah nama latin. Bukan terjemahan:
-                   ini bentuk Hangul dari nama orangnya sendiri. Diletakkan
-                   di bawah karena pembaca yang tidak bisa baca Korea tetap
-                   harus bisa tahu siapa yang sedang dibahas, dan urutan
-                   membaca dimulai dari atas. -->
-              <p class="anggota__hangul">{{ satu.nama }}</p>
-
-              <!-- Penanda status. Ini bukan data SBS — SBS tidak pernah
-                   menandai siapa yang masih aktif. Nilainya diambil dari
-                   laporan media Korea, karena halaman cast SBS sudah lama
-                   tidak diperbarui: 이광수 dan 전소민 masih tercantum
-                   padahal sudah keluar, dan 지예은 yang bergabung sejak
-                   2024 justru tidak ada.
-
-                   Badge netral untuk yang sudah keluar, bukan badge
-                   bahaya: keluar dari acara bukan kesalahan. -->
-              <span class="badge anggota__status" :class="satu.aktif ? 'badge--sukses' : ''">
-                {{ satu.aktif ? t('anggota.aktif') : t('anggota.keluar') }}
-              </span>
-            </div>
-
-            <!-- Ketiganya sudah jadi string biasa oleh pemetaan di script, jadi
-                 templatenya tidak perlu `rt()` maupun pembungkus lain.
-                 Penulisan `satu.` wajib di sini: nama variabel lariknya
-                 `baris`, bukan `deskripsi` atau `karier`. -->
-            <p v-if="satu.sapaan" class="anggota__sapaan">
-              <Icon name="lucide:quote" class="anggota__ikon" aria-hidden="true" />
-              {{ satu.sapaan }}
-            </p>
-
-            <div v-if="satu.deskripsi.length" class="anggota__deskripsi">
-              <p v-for="(baris, barisId) in satu.deskripsi" :key="barisId">
-                {{ baris }}
-              </p>
-            </div>
-
-            <!-- Riwayat karier dilipat per anggota. Sembilan anggota dengan
-                 tujuh sampai sembilan baris masing-masing menambah 62 baris
-                 ke halaman ini, dan hampir tidak ada yang menelusuri
-                 seluruh kar seseorang.
-
-                 `<details>` dipakai, bukan tombol + state Vue: daftar ini
-                 cuma dibaca, tidak perlu state, dan `<details>` tetap
-                 berfungsi tanpa JavaScript. Yang sudah aktif tidak
-                 perlu diklik — daftar pendek tetap terbuka. -->
-            <details
-              v-if="satu.karier.length"
-              class="anggota__karier"
-              :open="satu.karier.length <= BATAS_KARIER"
+        <ul class="anggota">
+          <li
+              v-for="(satu, id) in kelompok.daftar"
+              :key="id"
+              class="anggota__baris"
             >
-              <summary class="label anggota__karier-judul">
-                {{ t('anggota.karier') }}
-                <!-- Jumlahnya selalu ditulis. Kalau daftarnya terlipat
-                     tanpa petunjuk, orang mengira karriere orang ini
-                     memang sedikit — padahal yang tersembunyi justru
-                     yang paling panjang. -->
-                <span class="anggota__karier-jumlah">{{ satu.karier.length }}</span>
-                <Icon
-                  name="lucide:chevron-down"
-                  class="anggota__karier-panah"
-                  aria-hidden="true"
-                />
-              </summary>
-              <ul class="anggota__karier-daftar">
-                <li v-for="(baris, barisId) in satu.karier" :key="barisId">
+            <!-- Foto bukan dekorasi: orang mengenali cast lewat wajahnya, dan
+                 nama Korea saja sulit dibaca orang Indonesia. Alt-nya
+                 nama orang itu karena gambar ini memang memportretkan
+                 orang tersebut.
+
+                 Ukurannya dikunci lewat `width` dan `height` supaya baris
+                 tidak bergeser selagi fotonya belum selesai dimuat — foto
+                 dari CDN pihak ketiga tidak selalu tiba secepat teksnya. -->
+            <!-- Yang mengisi kotak 3.5rem ini ada dua, bukan satu.
+                 `
+                 Foto dipakai kalau ada. Kalau tidak ada, yang muncul
+                 mark huruf — bentuk dan warnanya sama persis dengan
+                 mark di kartu tayang, supaya kotak kosong itu terbaca
+                 sebagai keputusan desain, bukan foto yang gagal dimuat.
+
+                 Dua hal yang sengaja tidak dipakai: `src=""`, karena
+                 itu meminta halaman itu sendiri dan memunculkan gambar
+                 rusak; dan foto dari mana pun yang tidak boleh dipakai
+                 ulang. Foto berita milik studio dan press, dan halaman
+                 ini bukan menyimpan salinannya melainkan menautkan
+                 URL-nya — menautkan foto berhak cipta milik orang lain
+                 bukan memakai foto.
+
+                 Photographers punya hak yang sama atas fotonya, dan
+                 foto bebas yang tersedia untuk ketiga orang ini cuma
+                 satu, dengan kewajiban atribusi.`)
+                 Kalau nanti ada file sendiri di `public/anggota/`,
+                 cukup isi `foto` di blok data — mark-nya hilang
+                 sendiri karena keduanya berbagi kotak yang sama. -->
+            <img
+              v-if="satu.foto"
+              class="anggota__foto"
+              :src="satu.foto"
+              :alt="satu.latin"
+              width="56"
+              height="56"
+              loading="lazy"
+            >
+
+            <span v-else class="anggota__mark" aria-hidden="true">
+              {{ satu.latin.charAt(0) }}
+            </span>
+
+            <div class="anggota__isi">
+              <div class="anggota__kepala">
+                <h3 class="anggota__nama">{{ satu.latin }}</h3>
+
+                <!-- Nama Korea di bawah nama latin. Bukan terjemahan:
+                     ini bentuk Hangul dari nama orangnya sendiri. Diletakkan
+                     di bawah karena pembaca yang tidak bisa baca Korea tetap
+                     harus bisa tahu siapa yang sedang dibahas, dan urutan
+                     membaca dimulai dari atas. -->
+                <p class="anggota__hangul">{{ satu.nama }}</p>
+
+                <!-- Tanggal keluar, hanya untuk yang sudah keluar.
+                     Berdiri sendiri, bukan ditempel di belakang nama, supaya
+                     baris tanpa foto dan tanpa uraian tetap setinggi satu
+                     baris teks — bukan blok kosong yang lebih tinggi dari
+                     kartu di atasnya. -->
+                <p v-if="satu.keluar" class="anggota__keluar">
+                  <Icon name="lucide:log-out" class="anggota__keluar-ikon" aria-hidden="true" />
+                  {{ formatKeluar(satu.keluar) }}
+                </p>
+
+              </div>
+
+              <!-- Ketiganya sudah jadi string biasa oleh pemetaan di script, jadi
+                   templatenya tidak perlu `rt()` maupun pembungkus lain.
+                   Penulisan `satu.` wajib di sini: nama variabel lariknya
+                   `baris`, bukan `deskripsi` atau `karier`. -->
+              <p v-if="satu.sapaan" class="anggota__sapaan">
+                <Icon name="lucide:quote" class="anggota__ikon" aria-hidden="true" />
+                {{ satu.sapaan }}
+              </p>
+
+              <div v-if="satu.deskripsi.length" class="anggota__deskripsi">
+                <p v-for="(baris, barisId) in satu.deskripsi" :key="barisId">
                   {{ baris }}
-                </li>
-              </ul>
-            </details>
-          </div>
-        </li>
-      </ul>
+                </p>
+              </div>
+
+              <!-- Riwayat karier dilipat per anggota. Sembilan anggota dengan
+                   tujuh sampai sembilan baris masing-masing menambah 62 baris
+                   ke halaman ini, dan hampir tidak ada yang menelusuri
+                   seluruh kar seseorang.
+
+                   `<details>` dipakai, bukan tombol + state Vue: daftar ini
+                   cuma dibaca, tidak perlu state, dan `<details>` tetap
+                   berfungsi tanpa JavaScript. Yang sudah aktif tidak
+                   perlu diklik — daftar pendek tetap terbuka.
+
+                   **Tidak ada jumlah baris di sebelah judul.** Sempat ada,
+                   dan justru membingungkan: angka "9" di sebelah "Riwayat
+                   karier" dibaca sebagai "ada sembilan baris", padahal yang
+                   tertutup justru yang paling panjang — dan angkanya bergerak
+                   terus setiap kali daftar ini bertambah. Yang tersisa di
+                   sini cuma judul, panah, dan daftar. -->
+              <details
+                v-if="satu.karier.length"
+                class="anggota__karier"
+                :open="satu.karier.length <= BATAS_KARIER"
+              >
+                <summary class="label anggota__karier-judul">
+                  {{ t('anggota.karier') }}
+                  <Icon
+                    name="lucide:chevron-down"
+                    class="anggota__karier-panah"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <ul class="anggota__karier-daftar">
+                  <li v-for="(baris, barisId) in satu.karier" :key="barisId">
+                    {{ baris }}
+                  </li>
+                </ul>
+              </details>
+
+              <!-- Atribusi foto. Hanya untuk foto yang bukan milik SBS,
+                   karena hanya foto itu yang lisensinya meminta
+                   disebutkan. Baris ini tidak dirender untuk foto
+                   SBS — tidak ada yang perlu disebut, dan baris kosong
+                   hanya membebani baris. -->
+              <p v-if="satu.kredit" class="anggota__kredit">
+                {{ t('anggota.foto') }}: {{ satu.kredit }}
+              </p>
+
+            </div>
+          </li>
+        </ul>
+      </template>
 
       <!-- SBS belum memperbarui halamannya: 이광수 dan 전소민 masih
            tercantum padahal sudah keluar, dan Ji Ye-eun yang bergabung
@@ -558,10 +930,13 @@ const BATAS_KARIER = 4
       <h2 class="bagian__judul">Statistik</h2>
 
       <ul class="statistik">
-        <li v-for="(satu, id) in statistik" :key="id" class="kartu statistik__butir">
+        <!-- Kuncinya `satu.id`, bukan indeks `v-for`: indeks ikut berubah
+             kalau urutan barisnya berubah, dan seluruh daftar-statistik ini
+             akan dirender ulang. -->
+        <li v-for="satu in statistik" :key="satu.id" class="kartu statistik__butir">
           <Icon :name="satu.ikon" class="statistik__ikon" aria-hidden="true" />
           <span class="statistik__nilai">{{ satu.nilai }}</span>
-          <span class="statistik__label">{{ satu.label }}</span>
+          <span class="statistik__label">{{ t(satu.label) }}</span>
         </li>
       </ul>
     </section>
@@ -591,22 +966,10 @@ const BATAS_KARIER = 4
 
 /* --- Kembali ------------------------------------------------- */
 
-/* Punya kelas sendiri, bukan `.meta` dari main.css, karena ini
- * tautan dan perlu `font-weight` serta warna tautan — dua hal yang
- * tidak boleh ikut pada daftar keterangan yang tidak bisa ditekan. */
-.detail__kembali {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-
-  margin-bottom: 1.25rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-.detail__kembali-ikon {
-  font-size: 1rem;
-}
+/* Gaya tautan kembali dipakai bersama lima halaman Running Man, jadi
+ * aturannya ada di `.kembali` dalam main.css — bukan disalin ke sini.
+ * Kalau tiap halaman menulis salinannya sendiri, satu halaman yang
+ * diperbaiki membuat empat lainnya kelihatan berbeda. */
 
 /* --- Kartu di halaman ini ------------------------------------ */
 
@@ -632,7 +995,13 @@ const BATAS_KARIER = 4
  *
  * `min-width: 0` pada kolom data itu penting: tanpa itu, teks panjang
  * menahan baris flex dan mark terdorong ke baris bawah maupun di
- * layar yang sebenarnya cukup lebar. */
+ * layar yang sebenarnya cukup lebar.
+ *
+ * Paddingnya `clamp`, bukan angka tetap. Di 360px, 1.75rem per sisi
+ * memakan 56px dari kartu yang di dalamnya sudah dikurangi padding
+ * halaman — dan kartu ini isinya mark 64px plus dua kalimat pendek,
+ * jadi ruang kosongnya yang paling banyak menyumbang lebar yang
+ * hilang. */
 .acara {
   display: flex;
   flex-wrap: wrap;
@@ -640,7 +1009,7 @@ const BATAS_KARIER = 4
   gap: 1.25rem;
 
   margin-top: 2rem;
-  padding: 1.75rem;
+  padding: clamp(1.25rem, 4vw, 1.75rem);
 }
 
 /* Mark huruf. Bentuk dan tipografinya sama persis dengan
@@ -757,9 +1126,11 @@ const BATAS_KARIER = 4
  * ke bawahnya, dan `min-width: 0` pada kolom teks supaya nama Korea
  * yang panjang tidak menahan baris flex dan mendorong foto ke luar.
  *
- * Baris pertama juga memakai `border-top`, tapi garis antar baris baru
- * mulai dari baris kedua. Baris pertama menempel pada permukaan kartu,
- * jadi garis di atasnya akan terbaca sebagai tepi kartu yang gagal. */
+ * `border-top` ada di SEMUA baris, termasuk yang pertama. Baris pertama
+ * berada tepat di bawah `<h2>` yang sudah punya jarak sendiri: tanpa
+ * garis itu ia menggantung di bawah judul bagian, tanpa batas yang
+ * menjelaskan bahwa daftarnya sudah mulai. Alasan yang sama dipakai di
+ * daftar "Stream lain" pada halaman streaming. */
 .anggota__baris {
   display: flex;
   flex-wrap: wrap;
@@ -776,12 +1147,51 @@ const BATAS_KARIER = 4
   list-style: none;
 }
 
+/* Di layar lebar daftar anggota jadi DUA KOLOM.
+ *
+ * Sembilan baris selebar 1104px hanya berisi foto 56px, satu nama, dan
+ * satu-dua baris deskripsi — sisa lebar barisnya ruang kosong, dan
+ * baris sepanjang itu paling sulit dibaca justru di bagian yang
+ * isinya kalimat.
+ *
+ * `64rem` dan bukan `48rem`: di tablet, dua kolom membuat deskripsi
+ * terjepit jadi tumpukan kata yang tinggi, sementara satu kolom
+ * selebar 660px masih nyaman dibaca. Angka ini sama dengan batas
+ * kolom ketiga di daftar episode.
+ *
+ * Garis pemisahnya tidak perlu diatur ulang di sini. Tiap baris sudah
+ * punya `border-top` sendiri, dan di grid garis itu memisahkan baris
+ * per baris — bukan membentang melintasi dua kolom, karena tiap baris
+ * memang sel selebar satu kolom.
+ *
+ * `align-items: start` supaya seseorang dengan karier sepuluh baris
+ * tidak memaksa tetangga di sebelahnya ikut meninggi — tiap baris
+ * setinggi isinya. */
+@media (min-width: 64rem) {
+  .anggota {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2rem;
+    align-items: start;
+  }
+}
+
 .anggota__foto {
   flex-shrink: 0;
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
   object-fit: cover;
+
+  /* Wajah orang berada di separuh atas foto yang lebih tinggi dari
+   * lebar, sedangkan `cover` memotong dari tengah. Tanpa baris ini
+   * foto sepotret 송중기 kehilangan puncak kepalanya: yang tertinggal
+   * hanya dari dahi ke bawah. Seperempat dari tinggi memotong wajah
+   * tanpa membuang separuh foto.
+   *
+   * Foto bersegi milik SBS tidak terpengaruh sama sekali — tidak ada
+   * yang terpotong untuk digeser. */
+  object-position: center 25%;
 
   /* Latar di belakang gambar. Selagi foto dari CDN belum selesai dimuat,
    * yang tampil adalah kotak seukuran aslinya dan warnanya tidak
@@ -793,6 +1203,34 @@ const BATAS_KARIER = 4
 .anggota__isi {
   flex: 1 1 16rem;
   min-width: 0;
+}
+
+/* Mark huruf untuk anggota yang fotonya tidak ada.
+ *
+ * Mengganti `.anggota__foto`, bukan sekadar gambarnya: keduanya punya
+ * ukuran, radius, dan border yang sama persis, sehingga kotak yang
+ * kosong tetap sebesar kotak yang berisi foto dan barisnya tidak
+ * bergeser. Warna hurufnya mengikuti mark di kartu tayang.
+ *
+ * `flex-shrink: 0` wajib seperti pada foto — tanpa itu, di layar
+ * sempit mark ikut tertekan jadi oval. */
+.anggota__mark {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--latar-naik-3);
+  border: 1px solid var(--garis-sedang);
+
+  /* `line-height: 1` wajib: tanpa itu huruf mewarisi line-height body
+   * dan tidak benar-benar berada di tengah lingkarannya. */
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--teks-aksen);
 }
 
 /* Nama dan penanda status sebaris. `flex-wrap` dipakai supaya di layar
@@ -812,16 +1250,6 @@ const BATAS_KARIER = 4
   color: var(--teks-utama);
 }
 
-/* Badge netral kalau statusnya "sudah keluar", mengikuti `.badge`
- * bawaan. Yang aktif memakai warna `--sukses` dari main.css.
- *
- * Ditulis ulang di sini hanya karena warna netral bawaan `.badge` sudah
- * pas untuk keadaan ini — keluar dari acara bukan tanda bahaya. */
-.anggota__status {
-  background: var(--latar-sorot);
-  color: var(--teks-sekunder);
-}
-
 /* Font Korea. Teks di sini seluruhnya bahasa Korea, dan proyek ini belum
  * punya font Korea di tumpukan sistem — tanpa baris ini teksnya bisa
  * tampil sebagai kotak pada perangkat yang tidak punya glyph-nya.
@@ -836,6 +1264,37 @@ const BATAS_KARIER = 4
 .anggota__karier {
   font-family: system-ui, -apple-system, "Apple SD Gothic Neo",
     "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+
+/* Judul kelompok anggota: "Aktif" dan "Sudah keluar".
+ *
+ * **Bukan `.label` dan bukan `.bagian__judul`.** Keduanya berbentuk sama:
+ * 0.8125rem, huruf besar, warna redup. Dipakai untuk judul kelompok,
+ * halaman ini punya tiga judul dengan bentuk identik — bagian ini,
+ * kelompok aktif, kelompok yang sudah keluar — dan yang terakhir bisa
+ * saja tidak kelihatan orang karena sama persis dengan judul di atasnya.
+ *
+ * Jadi kelompok ini 하나 tingkat lebih kuat: lebih besar, tebal, dan
+ * berwarna terang. Hierarki yang terlihat, bukan hanya yang ada di
+ * struktur HTML.
+ *
+ * Huruf besarnya dibuang. `text-transform` ikut memanjangkan bentuk
+ * huruf kecil di dua bahasa — `Ü` di "Über" jadi dua tinggi — dan di
+ * beberapa bahasa huruf besar jarang dipakai, sementara sebesar ini
+ * huruf besar berhenti terasa tegas. */
+.anggota__kelompok {
+  margin: 1.75rem 0 0.75rem;
+
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--teks-utama);
+}
+
+/* Kelompok pertama mengikuti `<h2>` bagian yang sudah punya jarak bawah
+   sendiri, jadi jarak atasnya tidak perlu sebesar kelompok kedua. */
+.bagian__judul + .anggota__kelompok {
+  margin-top: 0.5rem;
 }
 
 /* Nama Korea. Sengaja kecil dan redup di bawah nama latin: bentuk
@@ -909,17 +1368,6 @@ const BATAS_KARIER = 4
 /* Panah berputar ninety derajat saat terbuka. Transisi pendek supaya
  * terasa terkait dengan perubahan, tapi tidak menahan klik
  * berikutnya — gerakan lambat di sini akan terasa seperti lag. */
-/* Jumlah baris di sebelah label. Ditelusuri dari warna teks
- * lembut ke warna utama supaya tetap terbaca sebagai angka, bukan
- * sebagai bagian dari tulisan "Riwayat karier". */
-.anggota__karier-jumlah {
-  color: var(--teks-lembut);
-}
-
-.anggota__karier-judul:hover .anggota__karier-jumlah {
-  color: var(--teks-sekunder);
-}
-
 .anggota__karier-panah {
   font-size: 0.875rem;
   transition: transform 160ms ease;
@@ -950,6 +1398,48 @@ const BATAS_KARIER = 4
   color: var(--teks-lembut);
 }
 
+/* Atribusi foto di bawah isi baris.
+ *
+ * Paling redup di halaman: ini keterangan teknis untuk pemakaian ulang,
+ * bukan bagian dari profil orangnya. Tapi tidak boleh hilang: syarat lisensi Creative Commons meminta siapa fotografernya
+ * dan lisensinya, dan baris tanpa itu sama sahnya dengan memakai
+ * tanpa izin. */
+.anggota__kredit {
+  margin-top: 0.625rem;
+
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--teks-lembut);
+}
+
+/* Tanggal keluar di bawah nama, berlaku untuk semua anggota yang sudah
+ * keluar — bukan hanya yang tidak punya profil. Statusnya sudah
+ * terbaca dari kelompok tempat baris itu berada, dan tanggalnya
+ * berlaku sama untuk siapa pun yang sudah tidak tayang.
+ *
+ * Ukurannya sama dengan `.anggota__hangul` di sebelahnya. Bedanya cuma
+ * warnanya — hangul adalah nama orangnya, sedangkan tanggal ini adalah
+ * keterangan, dan keduanya tidak boleh seberat satu sama lain di mata
+ * pembaca. */
+.anggota__keluar {
+  /* Baris penuh di flex, supaya tanggal mulai dari kolom yang sama
+   * dengan nama dan tidak ikut تجعل baris ini melebar. */
+  flex-basis: 100%;
+  margin-top: 0.375rem;
+
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--teks-lembut);
+}
+
+.anggota__keluar-ikon {
+  font-size: 0.875rem;
+}
+
 .anggota__bawah {
   margin-top: 0.75rem;
 }
@@ -959,11 +1449,20 @@ const BATAS_KARIER = 4
 /* auto-fit, bukan empat kolom tetap. Di layar sempit kolom ketiga
  * menyempit sampai angkanya mulai turun baris, sementara dua kolom
  * masih muat dengan lebar yang sama. Pola ini sama persis dengan
- * yang dipakai di (profile)/profile.vue. */
+ * yang dipakai di (profile)/profile.vue.
+ *
+ * Lebarnya dibatasi 36rem, dan itu memperbaiki satu masalah yang baru
+ * terlihat di layar lebar: dengan `1fr`, dua angka masing-masing dapat
+ * 552px, sehingga satu angka berisi tiga digit duduk di tengah kotak
+ * setengah meter. Batas ini setengah `--lebar-konten` (72rem), jadi
+ * empat angka pun masih muat tanpa kolom yang lebih sempit dari
+ * 7.5rem. */
 .statistik {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
   gap: 0.75rem;
+
+  max-width: 36rem;
 
   margin: 0;
   padding: 0;

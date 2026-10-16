@@ -37,9 +37,10 @@
   "anggota": {
     "judul": "Pengenalan anggota",
     "karier": "Riwayat karier",
+    "foto": "Foto",
     "aktif": "Aktif",
     "keluar": "Sudah keluar",
-    "bawah": "Nama dan profil mengikuti data SBS, yang belum diperbarui — sebagian anggota yang sudah keluar masih tercantum, dan sebagian yang bergabung sejak 2024 belum masuk. Penanda status diambil dari laporan media Korea.",
+    "bawah": "Nama dan profil mengikuti data SBS, yang belum pernah diperbarui — 지예은 yang bergabung sejak 2024 tidak ada di sana, dan 이광수 serta 전소민 sudah dihapus dari daftar itu. Penanda status diambil dari laporan media Korea.",
     "orang": {
       "yuseok": {
         "sapaan": "Si troublemaker yang tak berubah-ubah",
@@ -196,6 +197,61 @@
           "8": "2019 MBC “The Newest Trend Program 2 (최신유행 프로그램 2)”",
           "9": "2023 MBC “Radio Star (라디오스타)”"
         }
+      },
+      "songjoongki": {
+        "sapaan": "Song Joong-ki, aktor yang naik kelas lewat drama 《Sungkyunkwan Scandal》",
+        "deskripsi": {
+          "1": "Aktor Korea Selatan yang lahir pada 19 September 1985 di Seoncheon-ri, Daejeon.",
+          "2": "Dikenal luas lewat drama KBS 《Sungkyunkwan Scandal》 (2010), lalu memegang peran utama pertamanya di 《Nice Guy, No Such Thing as a Nice Guy》 (2012), bersama film 《Werewolf Boy》 yang tahun sama juga berhasil.",
+          "3": "Lulus dari Sungkyunkwan University, Fakultas Manajemen. Ia juga atlet lari pendek sejak kelas satu sekolah dasar dan tiga kali mewakili Daejeon di Pekan Olahraga Nasional, sampai cedera pergelangan kaki di kelas dua SMP mengakhiri karier atletnya.",
+          "4": "Ia menjalani wajib militer pada Agustus 2013, lalu kembali sekitar tiga tahun kemudian lewat 《Descendants of the Sun》 (2016) — drama yang membawanya meraih Daesang di KBS Drama Awards."
+        },
+        "karier": {
+          "1": "2016– KBS2 “Descendants of the Sun (태양의 후예)”",
+          "2": "2020– tvN “Vincenzo (빈센조)”",
+          "3": "2022– JTBC “The Youngest Son of a Chaebol (재벌집 막내아들)”",
+          "4": "2019 tvN “Arthdal Chronicles (아스달 연대기)”",
+          "5": "2020 SBS “A Dog’s Courage (승리호)”",
+          "6": "2021 cinema “Reportman (보고타)”",
+          "7": "2012 KBS2 “Nice Guy, No Such Thing as a Nice Guy (세상 어디에도 없는 착한남자)”",
+          "8": "2012 cinema “Werewolf Boy (늑대소년)”",
+          "9": "2010–2011 SBS “Running Man (런닝맨)”",
+          "10": "2010 KBS2 “Sungkyunkwan Scandal (성균관 스캔들)”"
+        }
+      },
+      "lizzy": {
+        "sapaan": "Lizzy, nama panggung yang ia pakai 2010–2018; sejak 2020 ia memakai lagi nama aslinya",
+        "deskripsi": {
+          "1": "Penyanyi dan aktris Korea Selatan yang lahir pada 31 Juli 1992 di Busan.",
+          "2": "Dikenal sebagai anggota grup idol After School dan sub-unit Orange Caramel. Pada Mei 2018 ia meninggalkan After School setelah kontraknya berakhir, tetapi tetap berada di Orange Caramel.",
+          "3": "Sebelum itu, pada 2009 ia sempat menjadi backup dancer Son Dam-bi.",
+          "4": "Sudah sejak 2011 ia membagi waktu antara musik dan akting — mulai dari kamera cameonya di film 《White: The Melody of the Curse》 (2011), lalu film 《Momo Salon》 (2014) dan serial layar lebar 《Angry Mom》 (2015) serta 《Oh My Baby》 (2020)."
+        },
+        "karier": {
+          "1": "2010–2011 SBS “Running Man (런닝맨)”",
+          "2": "2010–2017 Pledis “After School (애프터스쿨)”, sub-unit “Orange Caramel (오렌지캐러멜)”",
+          "3": "2015–2018 “After School Blue (애프터스쿨 블루)”",
+          "4": "2011 cinema “White: The Melody of the Curse (백마)”",
+          "5": "2014–2015 Mnet “Hitmaker (히트메이커)”",
+          "6": "2020 tvN “Oh My Baby (오마이베이비)”"
+        }
+      },
+      "gary": {
+        "sapaan": "Gary, dari sapaan “Gae” (개, berarti anjing) waktu SMP yang ia adaptasi jadi nama panggung",
+        "deskripsi": {
+          "1": "Rapper Korea Selatan yang tampil dengan nama panggung Gary. Ia lahir pada 24 Februari 1978; nama itu berasal dari sapaan teman sekelasnya waktu SMP, “Gae”.",
+          "2": "Karier rap-nya dimulai di grup X-Teen pada 1997, lalu Honey Family, dan pada 2002 ia membentuk duo Leessang bersama Gil.",
+          "3": "Pada Januari 2014 ia releasing mini album pertamanya “Mr. Gae”, dan pada 2020 ia menandatangani kontrak dengan Million Market lewat agensinya Double 8.",
+          "4": "Ia juga pernah tampil sebagai tamu di drama Korea, termasuk “Emergency Couple” (2014) di KBS."
+        },
+        "karier": {
+          "1": "2010–2016 SBS “Running Man (런닝맨)”",
+          "2": "2002– Leessang (리쌍)",
+          "3": "1997 X-Teen, 1999–2000 Honey Family",
+          "4": "2014 digital single “Shower Later”",
+          "5": "2014 digital single “XX몰라”",
+          "6": "2014 KBS “Emergency Couple (응급부대)”"
+        }
       }
     },
     "kata": {
@@ -205,5 +261,12 @@
       "시트콤": "S sitkom",
       "드라마맥스": "Dramamax"
     }
+  },
+  "statistik": {
+    "episode": "Episode",
+    "tetap": "Cast tetap",
+    "keluar": "Sudah keluar",
+    "hari": "Hari tayang",
+    "minggu": "Minggu"
   }
 }

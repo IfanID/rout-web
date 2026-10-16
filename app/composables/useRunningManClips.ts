@@ -70,9 +70,10 @@ export const HALAMAN_DAFTAR = 100
 
 /** Banyak klip yang diminta beranda.
  *
- *  Beranda hanya menampilkan tiga. Dua puluh memberi cadangan kalau
- *  jumlah tampilannya dinaikkan sedikit, tanpa membuat beranda mengangkut
- *  ratusan klip yang tidak akan dilihat siapa pun. */
+ *  Beranda menampilkan tiga sekaligus, dan limabelas tersedia di dalam
+ *  kotak yang bisa digulir. Dua puluh memberi cadangan untuk keduanya
+ *  tanpa membuat beranda mengangkut ratusan klip yang tidak akan
+ *  dilihat siapa pun. */
 export const HALAMAN_BERANDA = 20
 
 /** Banyak klip yang diminta halaman satu klip, untuk bagian "Klip lain".

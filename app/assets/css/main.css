@@ -176,6 +176,32 @@ a:hover {
   color: var(--teks-aksen-murni);
 }
 
+/* Tombol.
+ *
+ * Reset, bukan gaya. Tanpa ini, setiap `<button>` yang tidak menyebutkan
+ * warnanya sendiri memunculkan warna bawaan peramban: latar abu terang
+ * dan garis outset abu — yang di tema gelap terlihat seperti kotak
+ * asing yang tidak sengaja, bukan bagian dari desain. Chrome bahkan
+ * tetap melukis native-nya meski `background` ditulis, karena `appearance`
+ * masih `auto`.
+ *
+ * `appearance: none` yang membuat lukisan bawaan itu hilang; sisanya supaya
+ * dasar setiap tombol sama: tanpa garis, tanpa latar, huruf seukuran
+ * teksnya, dan warnanya ikut warna teks di sekitarnya.
+ *
+ * Komponen yang memang punya bentuk sendiri tetap menimpanya: selector
+ * kelas menang atas selector elemen, jadi `.tombol`, `.badge`, dan
+ * komponen lain tidak berubah sedikit pun karena baris ini ada. */
+button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+}
+
 :focus-visible {
   outline: 2px solid var(--fokus-cincin);
   outline-offset: 2px;
@@ -262,6 +288,50 @@ a:hover {
   color: var(--teks-lembut);
 }
 
+/* ---------- Penghitung ---------- */
+
+/* Jumlah isi satu bagian, berdiri sendiri: "69 episode tersedia",
+ * "1.204 klip".
+ *
+ * Pill, bukan teks polos, supaya dengan cepat jelas bahwa itu angka
+ * penghitung bagian ini dan bukan kalimat yang bisa diklik. Garis
+ * tepinya sengaja tipis dan warnanya netral: ini bukan tombol, dan
+ * permukaan yang terlihat bisa diketuk padahal tidak ada tujuan di
+ * baliknya adalah jebakan. */
+.hitung {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+
+  background: var(--latar-naik-2);
+  border: 1px solid var(--garis-halus);
+
+  font-size: 0.75rem;
+  color: var(--teks-sekunder);
+}
+
+/* Angkanya sedikit ditonjolkan dari kata di sebelahnya, karena itu
+ * yang dicari orang ketika pertama datang ke bagian ini. */
+.hitung__angka {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--teks-utama);
+}
+
+/* Ikon sebaris disamakan tingginya dengan huruf teks, dan warnanya
+ * dibiarkan redup: ikon di sini cuma menjelaskan pill-nya milik
+ * bagian mana, bukan tanda yang perlu diperhatikan.
+ *
+ * Kelasnya diletakkan langsung di `<Icon>`, bukan lewat `:deep(svg)` —
+ * lihat catatan yang sama di `.meta__ikon` di bawah. */
+.hitung__ikon {
+  font-size: 0.875rem;
+  color: var(--teks-lembut);
+}
+
 /* ---------- Daftar keterangan ---------- */
 
 /* Ikon di depan kalimat, dibaca berurutan dan tanpa baris yang bisa
@@ -305,6 +375,49 @@ a:hover {
  * ditaruh di `<Icon>` langsung mengenai. */
 .meta__ikon {
   font-size: 0.875rem;
+}
+
+/* ---------- Kembali ---------- */
+
+/* Tautan ke halaman induk, berdiri di atas judul halaman.
+ *
+ * Dipakai lima halaman Running Man dan bentuknya sengaja sama di
+ * kelima halaman: yang membuat orang tahu tautan ini kembali ke
+ * induknya bukan teksnya — "Kembali ke semua episode"
+ * dan "Beranda Running Man" berbeda-beda — melainkan jaraknya dari
+ * judul dan panahnya yang sama. Kalau lima salinan memakai gaya
+ * sendiri-sendiri, satu halaman yang diperbaiki membuat empatnya
+ * kelihatan beda.
+ *
+ * Punya `font-weight` sendiri, bukan mewarisi aturan `a` global
+ * yang hanya memberi warna. Yang membuat tautan ini terbaca sebagai
+ * perintah — bukan keterangan yang kebetulan berwarna — adalah bobot
+ * hurufnya; warnanya sudah jelas dari `a` di atas. */
+.kembali {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  margin-bottom: 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* Ikon ikut ukuran teksnya, supaya tidak terlihat lebih besar dari
+ * kata di sebelahnya — sama seperti `.meta__ikon`.
+ *
+ * Kelasnya diletakkan di `<Icon>` itu sendiri, bukan lewat
+ * `:deep(svg)`: @nuxt/icon merender ikon sebagai `<span class="iconify">`
+ * dan menggambarnya lewat mask CSS, bukan elemen `<svg>`. */
+.kembali-ikon {
+  font-size: 1rem;
+  transition: transform var(--transisi);
+}
+
+/* Mendorong ikon sedikit ke kiri saat hover, memberi tahu arah
+ * tautan ini membawa orang sebelum dibaca. */
+.kembali:hover .kembali-ikon {
+  transform: translateX(-2px);
 }
 
 /* ---------- Kartu ---------- */
@@ -482,4 +595,15 @@ a:hover {
   font-size: 0.6875rem;
   letter-spacing: 0.02em;
   opacity: 0.85;
+}
+
+/* ---------- Gerak ---------- */
+
+/* Yang dipindahkan di sini hanya perpindahan kecil — panah tautan
+ * kembali yang bergeser. Semuanya hanya memberi tahu apa yang
+ * berubah, jadi matikan kalau pemakai meminta. */
+@media (prefers-reduced-motion: reduce) {
+  .kembali-ikon {
+    transition: none;
+  }
 }

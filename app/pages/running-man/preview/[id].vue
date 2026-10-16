@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /* Satu klip Running Man.
  *
- *   /running-man              beranda — tiga klip terbaru
+ *   /running-man              beranda — klip terbaru dalam kotak yang bisa digulir
  *   /running-man/preview      daftar seluruh klip
  *   /running-man/preview/:id  halaman ini
  *
@@ -142,42 +142,71 @@ function durasi(detik: number) {
 
 /* Episode dan durasi saja. Tanggal sengaja tidak ikut: halaman klip sudah
    punya keduanya, dan tanggal menambah satu baris tanpa menambah sesuatu
-   yang perlu diketahui orang untuk menonton. */
-const metaKlip = computed(() =>
-  klip.value
-    ? [klip.value.episode, klip.value.detik && durasi(klip.value.detik)]
-        .filter(Boolean)
-        .join(' · ')
-    : ''
-)
+   yang perlu diketahui orang untuk menonton.
+
+   Daftar, bukan kalimat gabungan. Sebelumnya keduanya disatukan dengan
+   " · " jadi satu baris abu-abu yang harus diurai; sebagai daftar
+   keterangan, tiap bagian punya ikonnya sendiri dan bisa dipindai satu
+   per satu — bentuk yang sama dengan kartu acara di halaman detail.
+
+   Yang kosong dibuang dari daftarnya, bukan ditampilkan sebagai butir
+   tanpa isi: klip lama dari SBS tidak selalu punya durasi. */
+const metaKlip = computed(() => {
+  const satu = klip.value
+  if (!satu) return []
+
+  return [
+    satu.episode && { ikon: 'lucide:tv', nilai: satu.episode },
+    satu.detik && { ikon: 'lucide:clock', nilai: durasi(satu.detik) }
+  ].filter((butir): butir is { ikon: string; nilai: string } => Boolean(butir))
+})
 </script>
 
 <template>
   <main class="konten clip">
     <NuxtLink
       :to="localePath({ name: 'running-man-preview', query: { urutan } })"
-      class="clip__kembali"
+      class="kembali"
     >
-      <Icon name="lucide:arrow-left" class="clip__kembali-ikon" aria-hidden="true" />
+      <Icon name="lucide:arrow-left" class="kembali-ikon" aria-hidden="true" />
       Semua klip
     </NuxtLink>
 
-    <h1 class="konten__judul">{{ judul }}</h1>
+    <!-- Judul klip, dua baris saja.
+     *
+     * Judul klip SBS panjang dan sering memuat nama bintang tamunya —
+     * di layar lebar satu barisnya bisa lebih dari seratus karakter,
+     * dan baris sepanjang itu sulit dibaca. Dipotong di dua baris,
+     * karena di bawahnya ada pemutar dan daftar klip yang lebih
+     * penting daripada sisa judulnya. -->
+    <h1 class="konten__judul clip__judul">{{ judul }}</h1>
 
-    <p v-if="metaKlip" class="konten__sub">
-      {{ metaKlip }}
-    </p>
+    <!-- Keterangan episode dan durasi, memakai daftar `.meta` dari
+         main.css — bentuk yang sama dengan kartu acara di halaman
+         detail dan kartu profil. -->
+    <ul v-if="metaKlip.length" class="meta">
+      <li v-for="(satu, n) in metaKlip" :key="n" class="meta__butir">
+        <Icon :name="satu.ikon" class="meta__ikon" aria-hidden="true" />
+        {{ satu.nilai }}
+      </li>
+    </ul>
 
     <!-- Pemutar sendiri, bukan bingkai SBS. Sebabnya ada di catatan
          ClipPlayer.vue: player mereka di dalam bingkai pihak ketiga selalu
          gagal di Chrome karena cookie-nya diblokir.
 
          `gambar` diteruskan sebagai poster supaya kotaknya tidak hitam
-         kosong sebelum videonya siap. -->
+         kosong sebelum videonya siap.
+
+         Lebarnya dikunci di layar lebar, sama seperti player di halaman
+         streaming: pada lebar konten penuh (72rem = 1152px), rasio 16:9
+         membuat kotaknya setinggi 648px — setengah tinggi monitor untuk
+         satu klip yang panjangnya dua menit. -->
     <ClipPlayer
       :id="id"
       :judul="judul"
       :gambar="klip?.gambar"
+      class="clip__pemutar"
     />
 
     <div class="clip__tujuan">
@@ -221,20 +250,52 @@ const metaKlip = computed(() =>
   padding-bottom: 10rem;
 }
 
-.clip__kembali {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
+/* Gaya tautan kembali dipakai bersama lima halaman Running Man, jadi
+   aturannya ada di `.kembali` dalam main.css — bukan disalin ke sini. */
 
-  margin-bottom: 1.25rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
+/* Judul klip SBS biasanya menyebut bintang tamunya, dan panjangnya
+ * sering lebih dari seratus karakter. Dua baris saja, lalu dipotong:
+ * di bawahnya ada pemutar dan daftar klip yang lebih penting daripada
+ * sisa judulnya.
+ *
+ * Batas barisnya ditulis pada paragrafnya, bukan di `--lebar-konten`:
+ * kartunya boleh selebar halaman, yang berhenti melebar cuma
+ * barisnya — sama seperti `.ringkas__teks` di halaman detail. */
+.clip__judul {
+  max-width: 46rem;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
-.clip__kembali-ikon {
-  font-size: 1rem;
+/* Player dan tombol di bawahnya berbagi satu lebar dan satu pusat,
+ * supaya keduanya segaris.
+ *
+ * `56rem` (896px) adalah batas yang sama dipakai halaman streaming:
+ * pada rasio 16:9 tingginya 504px, dan sisa halamannya masih terlihat
+ * tanpa menggulir. */
+.clip__pemutar {
+  display: block;
+  margin-top: 1.5rem;
 }
 
+@media (min-width: 48rem) {
+  .clip__pemutar,
+  .clip__tujuan {
+    max-width: 56rem;
+    margin-inline: auto;
+  }
+}
+
+/* Satu tombol, tapi tetap di dalam pembungkus yang sama dengan player
+ * supaya lebarnya ikut. Di layar sempit ia mengisi lebar itu — target
+ * ketuk yang besar tidak ada ruginya di sini.
+ *
+ * Di layar lebar ia berhenti melebar: tombol selebar 896px untuk empat
+ * kata terbaca sebagai bilah, bukan sebagai tombol. */
 .clip__tujuan {
   display: flex;
   gap: 0.75rem;
@@ -245,6 +306,13 @@ const metaKlip = computed(() =>
 .clip__tombol {
   flex: 1 1 10rem;
   justify-content: center;
+}
+
+@media (min-width: 48rem) {
+  .clip__tombol {
+    flex: 0 1 auto;
+    min-width: 12rem;
+  }
 }
 
 .clip__ikon {

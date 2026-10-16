@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /* Daftar klip Running Man.
  *
- *   /running-man              beranda — tiga klip terbaru
+ *   /running-man              beranda — klip terbaru dalam kotak yang bisa digulir
  *   /running-man/preview      halaman ini
  *   /running-man/preview/:id  halaman satu klip
  *
@@ -71,8 +71,8 @@ const urutan = urutanKlip(useRoute().query.urutan)
 
 <template>
   <main class="konten preview">
-    <NuxtLink :to="localePath({ name: 'running-man', query: { urutan } })" class="preview__kembali">
-      <Icon name="lucide:arrow-left" class="preview__kembali-ikon" aria-hidden="true" />
+    <NuxtLink :to="localePath({ name: 'running-man', query: { urutan } })" class="kembali">
+      <Icon name="lucide:arrow-left" class="kembali-ikon" aria-hidden="true" />
       Beranda Running Man
     </NuxtLink>
 
@@ -82,8 +82,13 @@ const urutan = urutanKlip(useRoute().query.urutan)
       Semua klip yang tercatat, terbaru di atas.
     </p>
 
-    <p v-if="klip.length" class="label preview__rekap">
-      {{ klip.length }} klip
+    <!-- Pill `.hitung` dari main.css: jumlah klip yang sudah tampil.
+         Angkanya tumbuh setiap kali halaman berikutnya dimuat, jadi
+         angkanya yang ditonjolkan — bukan kata "klip". -->
+    <p v-if="klip.length" class="hitung preview__rekap">
+      <Icon name="lucide:film" class="hitung__ikon" aria-hidden="true" />
+      <span class="hitung__angka">{{ klip.length }}</span>
+      klip
     </p>
 
     <PreviewSort />
@@ -101,6 +106,7 @@ const urutan = urutanKlip(useRoute().query.urutan)
     <div ref="penanda" class="preview__penanda" aria-hidden="true" />
 
     <p class="label preview__muat" role="status">
+      <span v-if="sedang" class="preview__titik" aria-hidden="true" />
       <template v-if="sedang">Memuat klip berikutnya…</template>
       <template v-else-if="habis">Akhir daftar.</template>
     </p>
@@ -116,23 +122,12 @@ const urutan = urutanKlip(useRoute().query.urutan)
   padding-bottom: 10rem;
 }
 
-.preview__kembali {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
+/* Gaya tautan kembali dipakai bersama lima halaman Running Man, jadi
+   aturannya ada di `.kembali` dalam main.css — bukan disalin ke sini. */
 
-  margin-bottom: 1.25rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-.preview__kembali-ikon {
-  font-size: 1rem;
-}
-
-/* Jarak ke daftar dibuat lebih rapat dari jarak bagian biasa, supaya
-   kalimat penghitungnya terbaca sebagai keterangan dari bagian ini,
-   bukan sebagai bagian tersendiri. */
+/* Jarak ke penghitung dibuat lebih rapat dari jarak bagian biasa,
+   supaya pill-nya terbaca sebagai keterangan dari halaman ini, bukan
+   sebagai bagian tersendiri. */
 .preview__rekap {
   margin-top: 1.5rem;
 }
@@ -150,8 +145,62 @@ const urutan = urutanKlip(useRoute().query.urutan)
    kalau ruangnya ikut hilang, daftar melompat ke atas tepat di detik
    pemuatan dimulai, dan itu terasa seperti halaman yang salah. */
 .preview__muat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
   min-height: 1.25rem;
   margin-top: 1.25rem;
   text-align: center;
+}
+
+/* Titik yang berdenyut selama pemuatan berikutnya berjalan.
+ *
+ * Gerak yang paling kecil yang bisa dipakai: teksnya sendiri sudah
+ * memberi tahu apa yang sedang terjadi lewat `role="status"`, dan titik
+ * ini cuma menjawab pertanyaan yang lebih cepat muncul — "masih jalan
+ * atau berhenti?" — pada halaman yang daftarnya bisa ratusan baris. */
+.preview__titik {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+
+  background: var(--aksen-indikator);
+
+  animation: denyut 1s ease-in-out infinite;
+}
+
+@keyframes denyut {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Kalau pemakai meminta gerakan dimatikan, titiknya tetap berdenyut
+ * dalam rentang yang lebih sempit — 0.4 sampai 1, bukan 0.25 sampai 1.
+ * Lingkaran yang berdenyut pelan masih terbaca sebagai "sedang
+ * berjalan"; lingkaran yang diam sama sekali cuma jadi titik yang tidak
+ * menjelaskan apa pun. */
+@media (prefers-reduced-motion: reduce) {
+  .preview__titik {
+    animation-name: denyut-diam;
+  }
+}
+
+@keyframes denyut-diam {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 </style>

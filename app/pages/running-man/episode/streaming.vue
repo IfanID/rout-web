@@ -75,26 +75,36 @@ const nomorDiminta = computed(() => {
 
 const daftar = await useDaftarEpisode()
 
+/* Label pribadi episode: milik peramban orang yang membukanya, bukan isi
+ * server. `labelSiap` menjaga pilnya tidak dirender sebelum isinya terbaca —
+ * label ini tidak ada di HTML yang dikirim server. */
+const { labelUntuk, siap: labelSiap } = useLabelEpisode()
+
 const diputar = useEpisode(daftar, () => nomorDiminta.value)
 
 const localePath = useLocalePath()
 
 /** Berapa baris "Stream lain", dan berapa yang diacak.
  *
- *  Sepuluh, tujuh di antaranya acak. Daftar penuhnya 69 baris, dan itu bukan
- *  daftar yang dibaca orang untuk mencari episode tertentu — untuk itu ada
- *  halaman `/running-man/episode`. Yang di sini adalah "loncat dari satu
+ *  Sepuluh, sembilan di antaranya acak. Daftar penuhnya 70 baris, dan itu
+ *  bukan daftar yang dibaca orang untuk mencari episode tertentu — untuk itu
+ *  ada halaman `/running-man/episode`. Yang di sini adalah "loncat dari satu
  *  episode ke episode lain tanpa perlu balik ke halaman daftar".
  *
- *  Tiga baris pertama punya peran yang jelas: selanjutnya, sebelumnya, paling
- *  baru. Kalau seluruhnya diisi dari yang terbaru, isinya jadi sepuluh episode
- *  terakhir — dan daftar yang isinya cuma yang terakhir itu tidak butuh sepuluh
- *  baris, cukup tiga. Sisanya diacak supaya halaman ini juga jadi jalan
- *  menemukan episode lama yang tidak akan pernah muncul di urutan mana pun. */
+ *  Cuma satu baris yang punya peran: episode paling baru. Kalau seluruhnya
+ *  diisi dari yang terbaru, isinya jadi sepuluh episode terakhir — dan daftar
+ *  yang isinya cuma yang terakhir itu tidak butuh sepuluh baris, cukup satu.
+ *  Sisanya diacak supaya halaman ini juga jadi jalan menemukan episode lama
+ *  yang tidak akan pernah muncul di urutan mana pun.
+ *
+ *  "Selanjutnya" dan "Sebelumnya" **tidak** di sini. Keduanya sudah ada
+ *  sebagai tombol lompat di bawah pemutar, jadi di daftar ini hanya
+ *  mengulang pekerjaan yang sama — dan yang tampil lebih jelas di sana,
+ *  karena tugasnya bukan salah satu dari sepuluh baris tapi satu tombol. */
 const JUMLAH_LAIN = 10
 
-/** Berapa dari sisanya yang diacak — tujuh, sisanya tiga peran khusus. */
-const JUMLAH_ACAK = JUMLAH_LAIN - 3
+/** Berapa dari sisanya yang diacak — sembilan, sisanya satu peran khusus. */
+const JUMLAH_ACAK = JUMLAH_LAIN - 1
 
 /** Satu baris "Stream lain": episode-nya, dan peran yang ia isi.
  *
@@ -107,29 +117,21 @@ interface Baris {
 
 /** Baris "Stream lain", sepuluh pertama.
  *
- *  Tiga baris pertama punya peran: episode selanjutnya, episode sebelumnya,
- *  dan episode paling baru. Setelah itu diisi dari daftar terbaru.
+ *  Satu baris pertama punya peran: episode paling baru. Setelah itu diisi
+ *  dari undian.
  *
- *  **Nomor yang sudah terpakai tidak diulang, dan itu bukan Detail kecil.**
- *  Kalau yang ditonton episode 69, episode selanjutnya adalah 70 dan episode
- *  paling baru juga 70 — tanpa penanganan ini, dua baris identik berdampingan
- *  dan daftar sepanjang sepuluh baris terlihat seperti ada yang salah.
+ *  **Nomor yang sedang ditonton tidak pernah ikut.** Dua baris yang menunjuk
+ *  episode yang sama terlihat seperti ada yang salah — bukan seperti daftar.
+ *  Episode yang sedang diputar juga tidak masuk daftar episode sama sekali,
+ *  jadi episode yang tidak sengaja terundi hanya mungkin kalau nomor itu
+ *  sudah dipakai, dan itu yang dicek `terpakai`.
  *
- *  Karena itu baris yang perannya sudah terisi episode lain DILEWATI, bukan
- *  ditulis ulang: episode 69 akan menampilkan "Selanjutnya" dan
- *  "Sebelumnya", lalu "Paling baru" hilang karena memang episode yang sama
- *  dengan "Selanjutnya" — lebih jujur daripada menampilkan 70 dua kali.
- *
- *  Panjangnya tetap sepuluh. Di ujung daftar, episode 70 tidak punya
- *  episode selanjutnya dan episode 1 tidak punya episode sebelumnya; slot
- *  yang kosong diisi dari undian, dan karena itu ia tidak berlabel.
- *
- *  Tujuh baris sisanya diacak dari sisa arsip. Ini bukan sekadar pemanis:
- *  dengan semuanya berurut, isi daftar selalu "yang terakhir" — jadi
- *  halaman ini tidak pernah menjadi jalan menemukan episode lama yang
- *  tidak sedang ditonton orang. Undian juga berubah setiap kali halaman
- *  ini dibuka ulang, jadi orang yang sedang mencari sesuatu punya alasan
- *  untuk kembali. */
+ *  Panjangnya tetap sepuluh, dan nueve sisanya diacak dari sisa arsip. Ini
+ *  bukan sekadar pemanis: dengan semuanya berurut, isi daftar selalu
+ *  "yang terakhir" — jadi halaman ini tidak pernah menjadi jalan menemukan
+ *  episode lama yang tidak sedang ditonton orang. Undian juga berubah setiap
+ *  kali halaman ini dibuka ulang, jadi orang yang sedang mencari sesuatu
+ *  punya alasan untuk kembali. */
 const lain = computed<Baris[]>(() => {
   const semua = daftar.value
   const sekarang = diputar.value
@@ -151,9 +153,8 @@ const lain = computed<Baris[]>(() => {
     hasil.push({ satu, peran })
   }
 
-  /* Tiga peran khusus, berurutan. */
-  ambil(sekarang.nomor + 1, 'Selanjutnya')
-  ambil(sekarang.nomor - 1, 'Sebelumnya')
+  /* Satu peran khusus. Episode selanjutnya dan sebelumnya punya tempatnya
+   * sendiri: tombol lompat di bawah pemutar. */
   ambil(semua[0].nomor, 'Paling baru')
 
   /* Tujuh sisanya diacak dari sisa arsip.
@@ -198,6 +199,40 @@ function keTonton(satu: Episode) {
   })
 }
 
+/** Episode terdekat dari yang sedang diputar, ke arah tertentu.
+ *
+ *  Dicari dari daftar episode, bukan dari `lain`. Semula keduanya diambil
+ *  dari `lain` — sekarang tidak bisa lagi, karena baris "Selanjutnya" dan
+ *  "Sebelumnya" sudah dihapus dari sana karena berduplikat dengan tombol
+ *  ini. Dan memang lebih tepat dari daftar itu: yang dibutuhkan tombol
+ *  lompat adalah episode yang benar-benar ada di abyss, bukan isi undian.
+ *
+ *  Dipilih dari daftar yang ada, bukan dari `nomor + 1`: kalau nomor 71
+ *  belum ada di abyss, episode selanjutnya yang sebenarnya adalah yang
+ *  nomor 72 — bukan tombol yang mengarah ke halaman kosong. */
+function tetangga(nomor: number, naik: boolean) {
+  const kandidat = daftar.value
+    .filter(satu => (naik ? satu.nomor > nomor : satu.nomor < nomor))
+    .sort((a, b) => Math.abs(a.nomor - nomor) - Math.abs(b.nomor - nomor))
+
+  return kandidat[0] ?? null
+}
+
+/** Episode sebelum dan sesudah yang sedang diputar, untuk tombol lompat
+ *  di bawah pemutar.
+ *
+ *  Yang paling pinggir dari keduanya hilang sendiri: episode terbaru tidak
+ *  punya tombol ke kanan, episode terlama tidak punya tombol ke kiri. Tombol
+ *  mati yang tidak bisa ditekan lebih membingungkan daripada tombol yang
+ *  memang tidak ada. */
+const sebelumnya = computed(() =>
+  diputar.value ? tetangga(diputar.value.nomor, false) : null
+)
+
+const selanjutnya = computed(() =>
+  diputar.value ? tetangga(diputar.value.nomor, true) : null
+)
+
 /** Alamat player, sudah jadi dari server.
  *
  *  Apa adanya, tanpa parameter tambahan. Player abyss membaca
@@ -219,12 +254,31 @@ function kePemutar(satu: Episode | null): string {
          di dalam bagian episode, dan daftar itu tempat orang ingin
          kembali untuk memilih yang lain — bukan tempat mereka datang
          karena sedang membaca deskripsi acara. -->
-    <NuxtLink :to="localePath('running-man-episode')" class="streaming__kembali">
-      <Icon name="lucide:arrow-left" class="streaming__kembali-ikon" aria-hidden="true" />
+    <NuxtLink :to="localePath('running-man-episode')" class="kembali">
+      <Icon name="lucide:arrow-left" class="kembali-ikon" aria-hidden="true" />
       Semua episode
     </NuxtLink>
 
-    <h1 class="konten__judul">Streaming</h1>
+    <!-- Judulnya nomor episode yang sedang diputar, bukan kata
+         "Streaming".
+
+         Halaman ini punya satu alamat untuk 69 episode, jadi judul yang
+         isinya nama halaman hanya mengulang nama route dan tidak
+         memberi tahu apa pun tentang isi tab — sedangkan nomor
+         episodenya yang membedakan satu kunjungan dari yang lain. Itu
+         juga yang muncul di riwayat, di bookmark, dan di banyak tab
+         yang terbuka bersamaan.
+
+         Kata "Streaming" tidak hilang: ia tinggal di nama route dan di
+         nama berkas. -->
+    <h1 class="konten__judul">
+      <template v-if="diputar">Episode {{ diputar.nomor }}</template>
+      <template v-else>Streaming</template>
+    </h1>
+
+    <p v-if="diputar?.acara" class="konten__sub">
+      {{ diputar.acara }}
+    </p>
 
     <!-- === Player ================================================
 
@@ -298,32 +352,90 @@ function kePemutar(satu: Episode | null): string {
          terbaru, jadi `v-if="diputar"` di atas hampir tidak pernah
          dipakai; ini hanya untuk daftar yang benar-benar kosong. -->
     <div v-if="diputar" class="kartu streaming__info">
-      <div class="streaming__info-kepala">
-        <div>
-          <p class="label streaming__info-label">Sedang diputar</p>
-          <p class="streaming__info-judul">
-            {{ diputar.acara }} episode {{ diputar.nomor }}
-          </p>
-        </div>
+      <!-- Nomor episode sebagai mark, dengan bentuk yang sama persis
+           dengan kotak nomor di daftar episode: tiga digit, monospace.
+           Dua tempat yang menampilkan hal yang sama sebaiknya
+           kelihatan sebagai hal yang sama — dan di layar lebar, angka
+           yang besar di kiri membuat kartu ini tidak lagi jadi satu
+           baris teks yang memanjang.
 
-        <!-- Kualitas episode yang sedang diputar. Badge netral,
-             bukan aksen: kualitas bukan state, hanya angka yang
-             bisa dipilih pemakai. Warna aksen akan membuatnya terbaca
-             sebagai tanda yang perlu diperhatikan. -->
-        <div class="streaming__info-kualitas">
-          <span
-            v-for="r in diputar.resolusi"
-            :key="r"
-            class="badge mutu"
-          >
-            {{ r }}
-          </span>
-        </div>
+           `aria-hidden` karena nomor yang sama sudah ada di h1 di atas
+           halaman ini. -->
+      <span class="streaming__info-nomor" aria-hidden="true">
+        {{ String(diputar.nomor).padStart(3, '0') }}
+      </span>
+
+      <div class="streaming__info-teks">
+        <!-- Label pribadi, kalau episodenya punya. Di atas "Sedang
+             diputar", bukan di bawah: label itu yang paling spesifik —
+             menandai episode ini — sementara "Sedang diputar" berlaku
+             untuk kartu ini apa pun isinya. Urutannya sama dengan label
+             di daftar episode, supaya dua tempat itu tidak kelihatan
+             seperti dua hal yang berbeda. -->
+        <span
+          v-if="labelSiap && labelUntuk(diputar.nomor)"
+          class="badge streaming__info-label-pribadi"
+        >
+          {{ labelUntuk(diputar.nomor) }}
+        </span>
+
+        <p class="label streaming__info-label">Sedang diputar</p>
+
+        <!-- Keterangan subtitle, kalau ada. Boleh kosong: subtitle
+             Running Man tertanam di dalam videonya, jadi tidak semua
+             unggahan punya catatannya. -->
+        <p v-if="diputar.label" class="streaming__info-keterangan">
+          {{ diputar.label }}
+        </p>
       </div>
 
-      <p v-if="diputar.label" class="streaming__info-keterangan">
-        {{ diputar.label }}
-      </p>
+      <!-- Kualitas episode yang sedang diputar. Badge netral,
+           bukan aksen: kualitas bukan state, hanya angka yang
+           bisa dipilih pemakai. Warna aksen akan membuatnya terbaca
+           sebagai tanda yang perlu diperhatikan. -->
+      <div class="streaming__info-kualitas">
+        <span
+          v-for="r in diputar.resolusi"
+          :key="r"
+          class="badge mutu"
+        >
+          {{ r }}
+        </span>
+      </div>
+    </div>
+
+    <!-- === Pindah episode =======================================
+
+         Dua tombol lompat ke episode tetangga, tepat di bawah
+         pemutar.
+
+         Dulu satu-satunya jalan pindah episode adalah daftar "Stream
+         lain" yang jauh di bawah halaman — sesudah seluruh kartu dan
+         judul bagian. Orang yang selesai menonton dan ingin lanjut ke
+         episode berikutnya harus menggulir dulu untuk mencarinya.
+
+         Tombolnya hanya muncul kalau episodenya memang ada di abyss;
+         lihat `sebelumnya` dan `selanjutnya` di script. Yang kanan
+         didorong ke tepi, jadi arah "sebelum" dan "sesudah" sudah
+         terbaca dari letaknya — bukan hanya dari panahnya. -->
+    <div v-if="sebelumnya || selanjutnya" class="streaming__langkah">
+      <NuxtLink
+        v-if="sebelumnya"
+        :to="keTonton(sebelumnya)"
+        class="tombol tombol--sekunder streaming__langkah-tombol"
+      >
+        <Icon name="lucide:arrow-left" class="streaming__ikon" aria-hidden="true" />
+        Episode {{ sebelumnya.nomor }}
+      </NuxtLink>
+
+      <NuxtLink
+        v-if="selanjutnya"
+        :to="keTonton(selanjutnya)"
+        class="tombol tombol--sekunder streaming__langkah-tombol streaming__langkah-tombol--kanan"
+      >
+        Episode {{ selanjutnya.nomor }}
+        <Icon name="lucide:arrow-right" class="streaming__ikon" aria-hidden="true" />
+      </NuxtLink>
     </div>
 
     <!-- === Stream lain ==========================================
@@ -336,11 +448,10 @@ function kePemutar(satu: Episode | null): string {
          `/running-man/episode` — yang di sini cuma untuk loncat ke episode
          tetangga tanpa perlu balik ke halaman daftar.
 
-         `peran` ("Selanjutnya", "Sebelumnya", "Paling baru") hanya ada di
-         tiga baris pertama, dan HANYA kalau baris itu benar-benar mengisi
-         perannya. Kalau episode yang ditonton sudah yang terbaru, tidak ada
-         "Selanjutnya" — dan memaksakan label itu berarti menulis "0" atau
-         mengulang baris yang sama. -->
+         `peran` ("Paling baru") hanya ada di satu baris, dan hanya kalau
+         baris itu benar-benar mengisi perannya. Kalau episode yang ditonton
+         sudah yang terbaru, episode itu sendiri yang jadi "Paling baru" —
+         dan karena ia tidak boleh tampil dua kali, baris ini kosong. -->
     <section v-if="lain.length" class="bagian">
       <h2 class="bagian__judul">Stream lain</h2>
 
@@ -357,6 +468,21 @@ function kePemutar(satu: Episode | null): string {
 
             <span v-if="baris.peran" class="streaming__baris-peran">
               {{ baris.peran }}
+            </span>
+
+            <!-- Label pribadi, kalau episodenya punya. Sebaris dengan
+                 peran dan judul, bukan di atas seperti di daftar episode:
+                 "Stream lain" selalu sepuluh baris dengan tinggi yang
+                 seragam, dan satu baris yang meninggi karena labelnya
+                 membuat daftar ini terlihat tidak rapi. Di layar sempit
+                 `flex-wrap` yang sudah ada yang menurunkan ke baris
+                 sendiri, dan itu jauh lebih rapi daripada memenggal
+                 Judul jadi dua baris. -->
+            <span
+              v-if="labelSiap && labelUntuk(baris.satu.nomor)"
+              class="badge streaming__baris-label-pribadi"
+            >
+              {{ labelUntuk(baris.satu.nomor) }}
             </span>
 
             <span class="streaming__baris-judul">{{ baris.satu.acara }}</span>
@@ -392,22 +518,10 @@ function kePemutar(satu: Episode | null): string {
 
 /* --- Kembali ------------------------------------------------- */
 
-/* Punya kelas sendiri, bukan `.meta` dari main.css, karena ini
- * tautan dan perlu `font-weight` — dua hal yang tidak boleh ikut
- * pada daftar keterangan yang tidak bisa ditekan. */
-.streaming__kembali {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-
-  margin-bottom: 1.25rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-.streaming__kembali-ikon {
-  font-size: 1rem;
-}
+/* Gaya tautan kembali dipakai bersama lima halaman Running Man, jadi
+ * aturannya ada di `.kembali` dalam main.css — bukan disalin ke sini.
+ * Warna, bobot huruf, dan jaraknya milik sistem, bukan milik halaman
+ * ini. */
 
 /* --- Player -------------------------------------------------- */
 
@@ -475,47 +589,136 @@ function kePemutar(satu: Episode | null): string {
 
 /* --- Yang sedang diputar ------------------------------------ */
 
-/* Berjarak 0.75rem dari player, bukan menyentuhnya. Dua permukaan
- * yang menempel terlihat seperti satu blok besar, dan pemisahnya
- * hilang — padahal yang satu video dan yang satu teks. */
+/* Tiga kolom: mark nomor, teks, kualitas. Jaraknya 0.75rem dari player,
+ * bukan menyentuhnya — dua permukaan yang menempel terlihat seperti satu
+ * blok besar, dan pemisahnya hilang, padahal yang satu video dan yang
+ * satu teks. */
 .streaming__info {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.875rem;
+
   margin-top: 0.75rem;
-  padding: 1.25rem 1.5rem;
+  padding: 1rem 1.25rem;
 }
 
-/* Judul kiri, kualitas kanan. Di layar sempit `flex-wrap` membuat
- * kualitas turun ke baris sendiri, dan karena `margin-left: auto` yang
- * mendorongnya, baris yang turun itu tetap mulai dari kiri. */
-.streaming__info-kepala {
+/* Mark nomor episode. Bentuknya sama persis dengan kotak nomor di
+ * daftar episode — kotak bersudut sedang, monospace, dengan angka yang
+ * tidak bergeser lebarnya. Dua layar yang menampilkan nomor yang sama
+ * akan terlihat seperti dua hal yang berbeda kalau bentuknya berbeda. */
+.streaming__info-nomor {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
+  justify-content: center;
+  flex-shrink: 0;
+
+  width: 3.25rem;
+  aspect-ratio: 16 / 9;
+
+  border-radius: var(--radius-sedang);
+  background: var(--latar-naik-3);
+  border: 1px solid var(--garis-sedang);
+
+  font-family: ui-monospace, "SF Mono", menlo, monospace;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--teks-aksen);
+}
+
+.streaming__info-teks {
+  min-width: 0;
 }
 
 .streaming__info-label {
+  margin-bottom: 0.125rem;
+}
+
+/* Label pribadi di kartu "Sedang diputar".
+ *
+ * Ukurannya tidak diturunkan seperti di daftar episode: kolom teks di
+ * kartu ini jauh lebih lega, dan `.badge` apa adanya di sini masih
+ * masih muat dengan nyaman. Yang diturunkan hanya jaraknya ke bawah — supaya
+ * labelnya dan baris "Sedang diputar" di bawahnya tidak terbaca satu
+ * blok tanpa jarak. */
+.streaming__info-label-pribadi {
   margin-bottom: 0.25rem;
 }
 
-.streaming__info-judul {
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--teks-utama);
+.streaming__info-keterangan {
+  font-size: 0.875rem;
+  color: var(--teks-sekunder);
 }
 
+/* Kualitas menempel di kanan baris, sejajar dengan mark nomornya. */
 .streaming__info-kualitas {
   display: flex;
   gap: 0.25rem;
+}
 
+/* Di bawah 30rem, tiga kolom di kartu ini tidak lagi muat: kotak nomor
+ * 52px, dua badge kualitas, dan sisanya buat satu label yang harus
+ * pecah dua baris. Badge kualitasnya turun ke baris kedua, sejajar
+ * dengan teksnya — dan karena itu badge-nya duduk di bawah label yang
+ * menjelaskannya, bukan di sampingnya.
+ *
+ * `max-width` dan bukan `min-width`: ini soal ruang yang tidak ada,
+ * sama seperti penyesuaian di daftar episode. */
+@media (max-width: 30rem) {
+  .streaming__info {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0.75rem;
+  }
+
+  .streaming__info-kualitas {
+    grid-column: 2;
+  }
+}
+
+/* --- Pindah episode ----------------------------------------- */
+
+/* Dua tombol yang saling berhadapan: yang satu menempel kiri, yang lain
+ * kanan.
+ *
+ * Yang mendorong tombol kedua ke kanan adalah `margin-left: auto` pada
+ * tombolnya sendiri, bukan `justify-content: space-between` pada
+ * barisnya. Bedanya kelihatan saat salah satunya tidak ada — episode
+ * terbaru tidak punya "selanjutnya" — karena `space-between` dengan
+ * satu anak menaruhnya di KIRI, dan tombol "sebelumnya" tiba-tiba
+ * berpindah tempat setiap kali orang berganti episode. */
+.streaming__langkah {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+
+  margin-top: 0.75rem;
+}
+
+.streaming__langkah-tombol {
+  /* Berbagi lebar supaya keduanya sama besar di layar sempit — kalau
+     ikut panjang teksnya, "Episode 70" dan "Episode 100" jadi dua
+     tombol yang lebarnya berbeda di halaman yang sama. */
+  flex: 1 1 8rem;
+  justify-content: center;
+}
+
+.streaming__langkah-tombol--kanan {
   margin-left: auto;
 }
 
-.streaming__info-keterangan {
-  margin-top: 0.75rem;
-  font-size: 0.8125rem;
-  color: var(--teks-sekunder);
+/* Di layar lebar tombolnya tidak perlu memenuhi setengah halaman:
+ * yang dicari orang cuma nomor episodenya, bukan permukaan besar
+ * yang bisa diketuk. */
+@media (min-width: 48rem) {
+  .streaming__langkah-tombol {
+    flex: 0 1 auto;
+    min-width: 9rem;
+  }
+}
+
+.streaming__ikon {
+  font-size: 1rem;
 }
 
 /* --- Stream lain --------------------------------------------- */
@@ -565,35 +768,55 @@ function kePemutar(satu: Episode | null): string {
 /* Tautan mengisi seluruh baris, termasuk area yang di sebelah
  * kualitas. Tanpa itu, hanya teksnya yang bisa diketuk, dan baris
  * selebar 360px dengan area sepi 90px terasa seperti ada bagian
- * yang mati. */
+ * yang mati.
+ *
+ * Padding sampingnya 0.5rem, sedangkan garis pemisah antar barisnya
+ * tetap selebar daftar. Isi barisnya jadi menjorok sedikit dari garis
+ * itu, dan hover-nya punya ruang untuk bernapas — latar sorot yang
+ * menempel persis di tepi huruf pertama terbaca sebagai teks yang
+ * ditebalkan. */
 .streaming__baris-tautan {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem 1rem;
 
-  padding: 0.75rem 0;
+  padding: 0.75rem 0.5rem;
+
+  border-radius: var(--radius-sedang);
 
   font-size: 0.875rem;
   color: var(--teks-utama);
   text-decoration: none;
 
-  transition: color var(--transisi);
+  transition: color var(--transisi), background var(--transisi);
 }
 
+/* Baris yang bisa diketuk diberi latar sorot saat hover, bukan hanya
+ * warna huruf: di daftar sepuluh baris, perubahan warna satu nama acara
+ * tidak cukup untuk menunjukkan baris mana yang sedang di bawah
+ * kursor — apalagi kalau namanya sama di semua baris. */
 .streaming__baris-tautan:hover {
+  background: var(--latar-sorot);
   color: var(--teks-aksen);
 }
 
-/* Peran baris: "Selanjutnya", "Sebelumnya", "Paling baru".
+/* Fokus keyboard memakai penanda yang sama dengan hover: orang yang
+ * berpindah dengan Tab tidak akan pernah melihat hover. */
+.streaming__baris-tautan:focus-visible {
+  background: var(--latar-sorot);
+}
+
+/* Peran baris: "Paling baru".
  *
  * Badge netral, bukan aksen — peran bukan state dan bukan pilihan, hanya
  * keterangan posisi. Warna aksen akan membuatnya terbaca sebagai tanda
  * yang perlu perhatian, dan itu bukan artinya.
  *
  * Lebarnya tetap meski panjang teksnya berbeda-beda, supaya kolom
- * peran lurus di sepuluh baris. `min-width` cukup untuk "Selanjutnya",
- * yang kata terpanjang dari tiga label itu. */
+ * peran lurus di sepuluh baris. Satu-satunya label yang pernah muncul
+ * di sini sekarang, tapi minsinya dibiarkan: kalau nanti peran lain
+ * ditambahkan lagi, kolomnya tidak melompat ke kanan. */
 .streaming__baris-peran {
   flex-shrink: 0;
   min-width: 5.5rem;
@@ -607,6 +830,22 @@ function kePemutar(satu: Episode | null): string {
   font-size: 0.6875rem;
   font-weight: 500;
   text-align: center;
+}
+
+/* Label pribadi di baris "Stream lain".
+ *
+ * Aksen, bukan netral seperti `streaming__baris-peran` di sebelahnya.
+ * Peran itu keterangan posisi yang berlaku untuk semua orang. Label
+ * pribadi justru isi milik satu orang, dan memang perlu menonjol: kalau
+ * warnanya sama dengan peran, keduanya jadi dua badge abu yang tidak bisa
+ * dibedakan tanpa membaca isinya.
+ *
+ * `flex-shrink: 0` mengikuti peran: label yang terpotong jadi
+ * "Pertama saya to…" tidak menyatakan apa pun, dan lebih baik baris ini
+ * turun ke baris sendiri. */
+.streaming__baris-label-pribadi {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
 }
 
 .streaming__baris-nomor {

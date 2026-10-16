@@ -53,36 +53,77 @@ const saatIni = computed(() => urutanKlip(route.query.urutan))
 </template>
 
 <style scoped>
-/* Baris horizontal, bukan tab besar. Urutannya bukan perintah utama
-   halaman — itu miliknya daftar — jadi ukurannya sekecil teks
-   keterangan, dan yang aktif ditandai garis bawah, bukan latar. */
+/* Segmented control: satu deret pilihan di dalam satu permukaan
+ * membulat.
+ *
+ * Sebelumnya tiga tautan telanjang dengan garis bawah di yang aktif.
+ * Masalahnya baru terlihat di layar lebar: tiga kata kecil dengan garis
+ * bawah 2px mengambang di tengah halaman 1152px, dan batas antar
+ * pilihannya tidak terbaca — yang aktif hanya terlihat dari warna
+ * teksnya, dan itu paling kabur justru bagi orang yang sulit
+ * membedakan warna.
+ *
+ * Sebagai satu permukaan, ketiganya jadi satu kontrol yang batasnya
+ * jelas, dan yang aktif punya latar sendiri — bukan hanya warna huruf.
+ *
+ * `inline-flex`, bukan `flex`: deretnya tidak perlu selebar halaman.
+ * Kontrol sepanjang 1100px untuk tiga kata terbaca sebagai bilah, bukan
+ * sebagai pilihan. */
 .urutan {
-  display: flex;
-  gap: 1rem;
+  display: inline-flex;
+  gap: 0.25rem;
+
+  max-width: 100%;
 
   margin-top: 0.75rem;
+  padding: 0.25rem;
+
+  background: var(--latar-naik-2);
+  border: 1px solid var(--garis-halus);
+  border-radius: 999px;
 }
 
+/* Labelnya tiga dan semuanya pendek — "Terbaru", "Terlama",
+ * "Terpopuler" — sehingga deret ini tetap muat di layar 320px tanpa
+ * perlu wadah yang bisa menggeser. Jumlah pilihan atau labelnya
+ * berubah? Wadah gulir mendatar lebih tepat daripada mengecilkan huruf
+ * sampai muat: yang paling perlu terbaca di sini justru nama
+ * pilihannya, dan teks 11px untuk mengejar lebar bukan bacaan. */
 .urutan__butir {
-  padding-bottom: 0.25rem;
+  flex: 0 0 auto;
 
-  border-bottom: 2px solid transparent;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
 
   font-size: 0.8125rem;
+  line-height: 1.4;
+  white-space: nowrap;
   color: var(--teks-lembut);
 
-  transition: color var(--transisi), border-color var(--transisi);
+  transition: background var(--transisi), color var(--transisi);
 }
 
 .urutan__butir:hover {
-  color: var(--teks-sekunder);
+  background: var(--latar-sorot);
+  color: var(--teks-utama);
 }
 
-/* Garis bawah, bukan perubahan warna teks: warna aksen di teks kecil
-   gampang jadi bersinar, sedangkan garis bawah bisa dibaca tanpa harus
-   membedakan warnanya. */
+/* Yang sedang dipakai: latar aksen tipis, bukan `--aksen-utama` penuh.
+ * Pil aksen penuh dengan teks gelap di atasnya menarik mata ke tab yang
+ * sedang aktif — padahal yang perlu diperhatikan di bagian ini adalah
+ * daftar klipnya. */
 .urutan__butir--dipakai {
+  background: var(--aksen-latar);
   color: var(--teks-aksen);
-  border-bottom-color: var(--aksen-indikator);
+  font-weight: 500;
+}
+
+/* Fokus keyboard mengikuti `:focus-visible` dari main.css — pil-nya
+ * sudah bulat, jadi cincin fokusnya ikut bulat tanpa aturan tambahan. */
+
+@media (prefers-reduced-motion: reduce) {
+  .urutan__butir {
+    transition: none;
+  }
 }
 </style>

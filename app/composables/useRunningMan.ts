@@ -10,6 +10,19 @@
  *  masih ditulis tangan di sini — begitu sumbernya jadi API, file
  *  ini yang berubah, bukan template halaman.
  *
+ *  Satu bagian sudah jadi API dan karena itu TIDAK ada lagi di sini:
+ *  jadwal tayang episode berikutnya, yang berubah sendiri setiap minggu
+ *  mengikuti apa yang benar-benar sudah tayang di SBS. Sumbernya
+ *  `useRunningManJadwal()`, aturannya di
+ *  `server/utils/running-man/jadwal.ts`. Yang tetap tinggal di berkas ini
+ *  cuma jam tayangnya, yang sama dari minggu ke minggu — lihat
+ *  `JAM_TAYANG`.
+ *
+ *  Jumlah episodenya TIDAK ada di sini lagi. Sempat ditulis tangan, lalu
+ *  basi begitu episode berikutnya tayang — angka mati tidak pernah
+ *  memperbarui dirinya sendiri. Sekarang dihitung dari jadwal SBS yang
+ *  sudah diambil halaman, lewat `episodeTercetak` di bawah.
+ *
  *  "Running Man" boleh muncul di nama file ini: itu nama acaranya,
  *  bukan nama produk Rout. Larangan nama produk berlaku untuk
  *  identifier milik Rout, dan nama acara justru sudah dipakai
@@ -62,17 +75,43 @@ const ACARA = {
   }
 }
 
-/** Episode yang belum tayang.
+/** Jam tayangnya, tetap, untuk kartu "Tayang berikutnya" di beranda.
  *
- *  Sengaja dipisah dari `episode` di bawah, bukan digabung jadi
- *  satu daftar. Kalau keduanya berderet, tidak ada lagi yang
- *  menjawab pertanyaan "kapan tayang lagi" tanpa membaca seluruh
- *  daftar lebih dulu. */
-const BERIKUTNYA = {
-  nomor: 823,
-  hari: 'Minggu, 18 Oktober 2026',
-  jam: '17.50 WIB'
+ *  Jamnya disimpan sebagai ANGKA, bukan sebagai tulisan "18.10 KST".
+ *  Dua pemakainya butuh dua hal yang berbeda dari satu fakta yang sama:
+ *  kartunya menuliskan jamnya dalam dua zona, dan hitung mundurnya
+ *  menghitung ke titik waktu itu. Kalau yang disimpan cuma teks jadinya,
+ *  hitung mundur harus membongkar teks itu lagi untuk tahu jam berapa —
+ *  dan pembongkaran seperti itu diam-diam salah begitu bentuk teksnya
+ *  berubah.
+ *
+ *  Sumbernya halaman program SBS sendiri, yang menulis jadwal ini sebagai
+ *  kalimat:
+ *
+ *    매주 일요일 오후 6시 10분   — setiap Minggu 18.10 KST
+ *
+ *  Angka ini TIDAK bisa diambil dari API-nya sebagai angka: di sana
+ *  jadwalnya cuma kalimat Korea seperti di atas, dan menerka-nerka arti
+ *  kalimat itu di kode lebih rapuh daripada mencatatnya sekali di sini.
+ *  Kalau SBS mengubah jam tayangnya, yang berubah cuma dua baris ini.
+ *
+ *  Yang perlu dicatat: sebelum ini kartu beranda menulis "17.50 WIB", dan
+ *  itu salah dua kali — menitnya bukan 50, dan jam Korea bukan jam
+ *  Indonesia. Nilainya tidak pernah berasal dari SBS, cuma ikut ditulis
+ *  apa adanya dari ingatan. */
+const JAM_TAYANG = {
+  /** Jam tayang dalam waktu Korea, apa adanya dari SBS. */
+  jam: 18,
+  /** Menitnya. */
+  menit: 10
 }
+
+/** Selisih WIB terhadap KST, dalam jam.
+ *
+ *  Dua jam, dan tetap: Indonesia bagian barat (UTC+7) dan Korea (UTC+9)
+ *  sama-sama tidak memakai waktu musim panas. Kartu beranda memakainya
+ *  untuk menulis jam yang sama dalam dua zona. */
+const SELISIH_WIB = 2
 
 const TENTANG = {
   /* Deskripsi resmi SBS, disalin dari meta tag halaman programnya:
@@ -99,55 +138,73 @@ const TENTANG = {
   }
 }
 
-/** "Musim" sengaja tidak ada. Running Man tidak membagi tayangannya
- *  ke dalam musim — nomor episodenya terus naik sejak 2010 tanpa
- *  restart, jadi menulis "15 musim" berarti mengarang batas yang
- *  tidak pernah ada. */
-const STATISTIK = {
-  /* `jumlah` adalah bentuk angkanya, terpisah dari `nilai` yang
-     sudah diformat untuk ditampilkan.
+/* Daftar statistik TIDAK ada di sini, dan memang tidak pernah ada.
+ *
+ * Sempat ada: `STATISTIK_TETAP` berisi satu kotak "Cast tetap: 7"
+ * yang ditulis tangan. Angka itu benar sampai daftar cast berubah,
+ * lalu basi tanpa ada yang memberitahu — masalah yang sama seperti
+ * angka "822 episode" yang lebih dulu dihapus. Sekarang kedua angka
+ * dihitung di halaman yang punya datanya, yaitu
+ * `app/pages/running-man/detail.vue`, dan hanya halaman itu yang
+ * menampilkan bagian statistik.
+ *
+ * "Musim" juga sengaja tidak ada. Running Man tidak membagi tayangnya
+ * ke dalam musim — nomor episodenya terus naik sejak 2010 tanpa
+ * restart, jadi menulis "15 musim" berarti mengarang batas yang tidak
+ * pernah ada. */
 
-     Dua-duanya dipakai: `nilai` untuk teks, `jumlah` untuk membandingkan
-     — misalnya "menampilkan 5 dari 822". Kalau jumlah diambil dari
-     `nilai`, setiap yang membandingkan harus tahu bahwa itu string,
-     dan membandingkan angka dengan string kebetulan berhasil karena
-     bahasa memaksa ke angka — bukan karena itu benar-benar angka. */
-  /* Hanya dua angka ini yang tidak sudah tampil di kartu depan.
-
-     Dulu ada empat. "80–95" dan "16 tahun tayang" dihapus karena
-     kartu depan sudah menuliskannya lebih persis — "80–95 menit"
-     dan "Tayang sejak 2010". Dua bentuk dari fakta yang sama di
-     satu halaman cuma bikin pembaca mengira itu dua informasi
-     berbeda, dan yang lebih pendek selalu kalah benar.
-
-     Kalau nanti muncul angka yang juga sudah ada di kartu, jangan
-     ditaruh di sini. */
-  episode: { ikon: 'lucide:tv', nilai: '822', label: 'Episode', jumlah: 822 },
-  cast: { ikon: 'lucide:users', nilai: '7', label: 'Cast tetap', jumlah: 7 }
-}
-
-/* Daftar episode TIDAK ada di sini.
+/* Daftar episode TIDAK ada di sini, dan jumlah episodenya juga tidak.
  *
  * Dulu ada larik `EPISODE` berisi lima episode contoh, dipakai halaman
  * episode dan halaman pemutar. Keduanya sekarang membaca abyss.to lewat
- * `useRunningManEpisode()`.
+ * `useDaftarEpisode()`.
  *
- * Angka 822 di `STATISTIK` tetap, dan itu bukan sisa yang lupa
- * dibersihkan: itu jumlah episode acaranya, sedangkan yang tampil di
- * daftar episode adalah jumlah yang benar-benar ada di abyss — sekarang
- * 69 dari 70, dan episode 66 masih kosong di sana. Dua angka itu menjawab
- * dua pertanyaan berbeda, dan menyamakan keduanya membuat orang mengira
- * ada 822 baris yang gagal dimuat. */
+ * Jumlah episode acaranya pun tidak ditulis di sini. Sempat ditulis
+ * `822` sebagai angka mati di `STATISTIK`: benar sampai episode
+ * berikutnya tayang, lalu basi tanpa ada yang memberitahu, karena tidak
+ * ada yang memperbarui angka mati. Sekarang dihitung dari jadwal SBS
+ * yang sudah diambil halaman — lihat `episodeTercetak` di bawah.
+ *
+ * Yang tetap terpisah: jumlah episode yang tersedia untuk ditonton
+ * (70, dari abyss) menjawab pertanyaan berbeda, dan menyamakan
+ * keduanya membuat orang mengira ada ratusan baris yang gagal dimuat. */
 
-/* Identitas objeknya dijaga tetap di luar fungsi. Kalau objeknya
-   dibuat di dalam, setiap panggilan memakai objek baru, dan setiap
-   `v-for` yang membacanya merender ulang tanpa ada yang berubah di
-   layar. */
-export function useRunningMan() {
+/* Identitas lariknya dijaga tetap di luar fungsi. Kalau dibuat di dalam,
+   setiap panggilan memakai larik baru, dan setiap `v-for` yang membacanya
+   merender ulang tanpa ada yang berubah di layar. */
+export function useRunningMan(
+  /** Nomor episode yang tayang berikutnya, dari `useRunningManJadwal()`.
+   *
+   *  Opsional: halaman yang tidak punya angka ini tetap jalan, hanya
+   *  tanpa kotak "Episode" — bukan dengan angka karangan. */
+  nomorBerikutnya?: Ref<number | null>
+) {
+  /** Berapa episode yang sudah tayang, atau `null` kalau tidak diketahui.
+   *
+   *  Dihitung dari nomor tayang berikutnya: episode terakhir yang sudah
+   *  tayang adalah satu less. Hitungan ini persis kebalikan dari yang
+   *  dilakukan server di `berikutnyaDari()`, jadi tidak ada dugaan baru
+   *  di dalamnya.
+   *
+   *  **Tidak ada angka cadangannya.** Kalau SBS sedang tidak bisa
+   *  dihubungi, nomor terakhir tidak diketahui dan yang dikembalikan
+   *  `null`, supaya pemanggil menyembunyikan barisnya. Angka cadangan
+   *  adalah masalah yang sama seperti angka mati — tampil sebagai
+   *  kepastian padahal sudah basi. */
+  const episodeTercetak = computed(() => {
+    const berikut = nomorBerikutnya?.value ?? null
+
+    return berikut && berikut > 1 ? berikut - 1 : null
+  })
+
   return {
     acara: ACARA,
-    berikutnya: BERIKUTNYA,
+    /* Jadwal tayang berikutnya TIDAK ada di sini: nomor dan tanggalnya
+     * datang dari SBS lewat `useRunningManJadwal()`, karena keduanya
+     * berubah sendiri setiap minggu. */
+    jamTayang: JAM_TAYANG,
+    selisihWib: SELISIH_WIB,
     tentang: TENTANG,
-    statistik: STATISTIK
+    episodeTercetak
   }
 }

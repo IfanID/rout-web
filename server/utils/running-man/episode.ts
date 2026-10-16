@@ -36,6 +36,14 @@
  *  4. **`resolutions` bisa punya label di luar dokumentasi.** Daftar resmi
  *     menyebut SD, HD, FullHD, 2K, 4K; episode 13 punya `mHD` yang tidak
  *     disebut di sana. Jangan disaring ke daftar tetap.
+ *
+ *  5. **`updatedAt` folder TIDAK ikut berubah saat isinya ditambah.**
+ *     Diuji 16 Oktober 2026: folder Episode 066 masih bertanggal 27 Mei
+ *     2026, padahal berkas di dalamnya diunggah 16 Oktober 2026. Jadi
+ *     tidak ada sinyal murah untuk "folder ini baru diisi" — daftar
+ *     folder tidak bisa dipakai sebagai detektor, dan satu-satunya cara
+ *     tahu adalah meminta isi folder itu lagi. Untungnya folder mana
+ *     yang perlu ditanya ulang sudah diketahui: yang kemarin kosong.
  */
 
 import type { Episode } from '#shared/types/episode'
@@ -200,7 +208,8 @@ function pecahNama(
  *  "slug does not exist" untuk yang masih diproses, jadi mengirimnya
  *  berarti membuat baris yang kelihatan bisa diketuk tapi tidak melakukan
  *  apa pun. Folder kosong ikut hilang dengan hal yang sama — `items`-nya
- *  kosong, dan episode 66 memang begitu.
+ *  kosong, dan itu memang alur pemiliknya: folder dibuat dulu, videonya
+ *  belakangan.
  *
  *  Kalau ada beberapa berkas, yang dipilih adalah yang `updatedAt` paling
  *  baru. Episode 32 punya dua berkas yang namanya sama persis, jadi hari
@@ -239,25 +248,39 @@ async function ambilSatu(
   }
 }
 
-/** Seluruh episode Running Man, nomor terbesar di atas.
+/** Folder episode yang belum berisi video yang bisa diputar.
  *
- *  Dua tahap: daftar folder dulu, lalu isi foldernya. Tahap kedua
- *  dijalankan beberapa folder sekaligus — tujuh puluh permintaan berurutan
- *  memakan waktu yang terasa, sementara sepuluh sekaligus mengisi
- *  semuanya dalam empat detik.
+ *  Alurnya di sisi pemilik memang begitu: folder dibuat dulu, videonya
+ *  belakangan. Di antara keduanya folder ini tercatat di sini, supaya
+ *  pemeriksaan berikutnya tahu folder mana saja yang perlu ditanya ulang
+ *  — bukan seluruh arsip. Satu folder berarti satu permintaan ±0,6 detik;
+ *  seluruh arsip berarti tujuh puluh permintaan ±5 detik. */
+export interface FolderKosong {
+  id: string
+  nomor: number
+}
+
+/** Hasil pengambilan penuh: yang sudah bisa diputar, yang belum, dan
+ *  folder induknya supaya pemeriksaan berikutnya tidak perlu mencari dari
+ *  root lagi. */
+export interface HasilEpisode {
+  daftar: Episode[]
+  kurang: FolderKosong[]
+  folderId: string | null
+}
+
+/** Daftar folder episode di bawah satu folder induk, nomor terbesar di
+ *  atas.
  *
- *  Hanya yang selesai dipetakan yang dikirim. Episode yang foldernya
- *  kosong atau belum diproses tidak muncul sama sekali, bukan muncul lalu
- *  gagal saat diketuk. */
-export async function ambilEpisode(kunci: string): Promise<Episode[]> {
-  if (!kunci) return []
-
-  const folder = await cariFolder(NAMA_FOLDER, kunci)
-
-  if (!folder) return []
-
+ *  Dipisah dari `ambilEpisode` karena dua pemakai butuh tahap ini saja:
+ *  build penuh membutuhkannya sebagai langkah pertama, dan pemeriksaan
+ *  folder baru membutuhkannya tanpa ikut membuka isi tiap folder. */
+export async function ambilDaftarFolder(
+  kunci: string,
+  folderId: string
+): Promise<FolderKosong[]> {
   const isi = await ambilSemua<FolderMentah>('/v1/folders/list', kunci, {
-    folderId: folder
+    folderId
   })
 
   /* Nomor diambil di sini, bukan nanti: folder yang namanya bukan pola
@@ -275,21 +298,94 @@ export async function ambilEpisode(kunci: string): Promise<Episode[]> {
      digit. Angka yang dibandingkan. */
   bertanda.sort((a, b) => b.nomor - a.nomor)
 
-  const hasil: Episode[] = []
+  return bertanda
+}
+
+/** Isi ulang folder-folder yang kemarin kosong.
+ *
+ *  Hanya folder itu yang dibuka — inilah pemeriksaan murah yang membuat
+ *  video yang baru diunggah muncul saat refresh tanpa menunggu build
+ *  penuh berikutnya. Yang gagal diminta (gangguan sesaat) ikut tercatat
+ *  sebagai "masih", supaya dicoba lagi di permintaan berikutnya, bukan
+ *  hilang diam-diam. */
+export async function cekFolderKosong(
+  kunci: string,
+  kurang: FolderKosong[]
+): Promise<{ ketemu: Episode[]; masih: FolderKosong[] }> {
+  const ketemu: Episode[] = []
+  const masih: FolderKosong[] = []
+
+  if (!kunci || !kurang.length) return { ketemu, masih }
+
+  /* Daftarnya pendek — biasanya satu folder — jadi dibuka sekaligus tanpa
+   * giliran seperti di `ambilEpisode`. */
+  const dapat = await Promise.all(
+    kurang.map(async satu => {
+      try {
+        return await ambilSatu(satu.id, satu.nomor, kunci)
+      } catch {
+        return null
+      }
+    })
+  )
+
+  dapat.forEach((episode, i) => {
+    if (episode) ketemu.push(episode)
+    else masih.push(kurang[i])
+  })
+
+  return { ketemu, masih }
+}
+
+/** Seluruh episode Running Man, nomor terbesar di atas.
+ *
+ *  Dua tahap: daftar folder dulu, lalu isi foldernya. Tahap kedua
+ *  dijalankan beberapa folder sekaligus — tujuh puluh permintaan berurutan
+ *  memakan waktu yang terasa, sementara sepuluh sekaligus mengisi
+ *  semuanya dalam empat detik.
+ *
+ *  Hanya yang selesai dipetakan yang dikirim. Episode yang foldernya
+ *  kosong atau belum diproses tidak muncul sama sekali, bukan muncul lalu
+ *  gagal saat diketuk — tapi foldernya dicatat di `kurang`, supaya video
+ *  yang diunggah belakangan ketahuan tanpa membangun ulang semuanya. */
+export async function ambilEpisode(kunci: string): Promise<HasilEpisode> {
+  const kosong: HasilEpisode = { daftar: [], kurang: [], folderId: null }
+
+  if (!kunci) return kosong
+
+  const folder = await cariFolder(NAMA_FOLDER, kunci)
+
+  if (!folder) return kosong
+
+  const bertanda = await ambilDaftarFolder(kunci, folder)
+
+  const daftar: Episode[] = []
+  const kurang: FolderKosong[] = []
 
   for (let mulai = 0; mulai < bertanda.length; mulai += BERSAMAAN) {
     const giliran = bertanda.slice(mulai, mulai + BERSAMAAN)
 
+    /* Hasilnya dipasangkan dengan foldernya, bukan cuma episodenya: yang
+     * gagal (kosong, belum diproses, atau gangguannya sesaat) perlu
+     * dicatat id-nya untuk dicek ulang — dan id itu hilang kalau yang
+     * dibawa hanya episodenya. */
     const dapat = await Promise.all(
-      giliran.map(satu => ambilSatu(satu.id, satu.nomor, kunci).catch(() => null))
+      giliran.map(async (satu) => {
+        try {
+          return { episode: await ambilSatu(satu.id, satu.nomor, kunci), folder: satu }
+        } catch {
+          return { episode: null, folder: satu }
+        }
+      })
     )
 
-    for (const satu of dapat) {
-      if (satu) hasil.push(satu)
+    for (const { episode, folder } of dapat) {
+      if (episode) daftar.push(episode)
+      else kurang.push(folder)
     }
   }
 
-  return hasil
+  return { daftar, kurang, folderId: folder }
 }
 
 /** Kunci API dari runtimeConfig, untuk handler. */

@@ -221,16 +221,19 @@ rout-web/
 │   │   │       └── SlotSelect.vue  Pemicu + menu pilih isi slot tengah
 │   │   ├── notification/
 │   │   │   └── Toaster.vue
+│   │   ├── AiringCountdown.vue Hitung mundur ke jam tayang episode berikutnya
 │   │   ├── ClipPlayer.vue      Pemutar klip di halaman satu klip
 │   │   ├── LivePlayer.vue      Pemutar live YouTube, mulai sendiri tanpa suara
 │   │   ├── PreviewList.vue     Daftar klip, dipakai beranda + /preview
 │   │   └── PreviewSort.vue     Tab urutan klip: terbaru, terlama, terpopuler
 │   ├── composables/
+│   │   ├── useHitungMundur.ts    Aturan fase hitung mundur + penanda waktunya
 │   │   ├── useNotifications.ts
 │   │   ├── useMiddleSlot.ts      Pintasan slot tengah navbar + route-nya
 │   │   ├── useRunningMan.ts      Data acara, dipakai beranda + detail
 │   │   ├── useRunningManClips.ts Klip tayang, diambil dari /api/running-man/clips
 │   │   ├── useRunningManEpisode.ts Episode dari abyss, /api/running-man/episode
+│   │   ├── useRunningManJadwal.ts Jadwal tayang, /api/running-man/jadwal
 │   │   └── useSearchOverlay.ts   State panel cari melayang
 │   ├── i18n/
 │   │   └── locales/          en.json, id.json, ko.json (hero, cari, nav, pengaturan, slot, anggota)
@@ -256,13 +259,16 @@ rout-web/
 │   │   ├── acak.get.ts          → /api/running-man/acak, sengaja tidak dicache
 │   │   ├── clips.get.ts         → /api/running-man/clips
 │   │   ├── episode.get.ts       → /api/running-man/episode
+│   │   ├── jadwal.get.ts        → /api/running-man/jadwal, episode berikutnya
 │   │   └── sekitar.get.ts       → /api/running-man/sekitar, tetangga satu klip
 │   └── utils/running-man/
 │       ├── episode.ts           Sumber episode abyss.to
+│       ├── jadwal.ts            Sumber jadwal tayang SBS dan aturan tanggalnya
 │       └── klip.ts             Alamat, pemetaan, dan pencarian posisi di arsip
 ├── shared/
 │   └── types/
 │       ├── episode.ts           Bentuk episode yang menyeberang server ke app
+│       ├── jadwal.ts            Bentuk jadwal yang menyeberang dari server ke app
 │       └── klip.ts              Bentuk klip yang menyeberang dari server ke app
 └── public/
     ├── favicon.ico
@@ -277,7 +283,7 @@ Header dan BottomNav dipasang di `app.vue`, jadi keduanya dipakai semua halaman.
 
 Halaman yang ada baru `/`, `/profile`, `/running-man`, `/running-man/detail`, `/running-man/episode`, `/running-man/episode/streaming`, `/running-man/preview`, `/running-man/preview/:id`, `/search`, dan `/settings`. Status tiap item navbar ditentukan oleh kolom `ke`: item dengan `ke` terisi dirender sebagai link, yang kosong sebagai tombol mati. Empat halaman di navbar sudah punya, jadi satu-satunya item yang masih bisa mati adalah slot tengah — dan hanya ketika pintasan yang dipilih belum punya halaman.
 
-Slot tengah punya enam halaman Running Man: beranda `/running-man` yang menampilkan satu kartu tayang berikutnya plus tiga klip terbaru, `/running-man/detail` yang memuat jadwal, tentang acara, statistik, dan pengenalan anggota, `/running-man/episode` yang mendaftar episode, `/running-man/episode/streaming` untuk menonton satu episode, `/running-man/preview` yang mendaftar seluruh klip, dan `/running-man/preview/:id` yang memutar satu klip. Semuanya menyalakan tetesan navbar yang sama — diwarisi dari awalan path, bukan lewat kolom `dalam`.
+Slot tengah punya enam halaman Running Man: beranda `/running-man` yang menampilkan satu kartu tayang berikutnya, pintasan ke dua halaman lain, dan limabelas klip terbaru dalam kotak yang bisa digulir, `/running-man/detail` yang memuat tentang acara, pengenalan anggota, dan statistik, `/running-man/episode` yang mendaftar episode, `/running-man/episode/streaming` untuk menonton satu episode, `/running-man/preview` yang mendaftar seluruh klip, dan `/running-man/preview/:id` yang memutar satu klip. Semuanya menyalakan tetesan navbar yang sama — diwarisi dari awalan path, bukan lewat kolom `dalam`.
 
 Data acara dibaca dari `app/composables/useRunningMan.ts` supaya tidak ada dua salinan angka yang bisa berbeda — angka itu dipakai tiga halaman. Data anggota cast kebalikannya: ditulis langsung di `app/pages/running-man/detail.vue`, karena halaman itu satu-satunya yang memakainya. Berkas terpisah baru berguna begitu ada pemakai kedua, dan selama belum ada ia cuma menambah satu berkas yang harus dibuka untuk memahami halaman itu. Teksnya, dalam tiga bahasa, tetap tinggal di blok `anggota` pada berkas locale.
 
@@ -457,7 +463,7 @@ Kapan perlu membuat folder, dan kapan tidak, dijelaskan di [Organisasi folder](#
 
 ## Server
 
-`server/api/running-man/` melayani data yang diambil dari pihak ketiga. Yang ada sekarang cuma satu endpoint, `clips.get.ts`, yang mengambil klip tayang dari SBS dan menyimpannya sebentar dengan `defineCachedEventHandler`.
+`server/api/running-man/` melayani data yang diambil dari pihak ketiga. Yang ada sekarang: `clips.get.ts` (klip tayang dari SBS, dicache sebentar dengan `defineCachedEventHandler`), `jadwal.get.ts` (episode berikutnya, dihitung dari episode terakhir yang sudah tayang di SBS), `episode.get.ts` (daftar episode dari abyss.to), `sekitar.get.ts`, dan `acak.get.ts`.
 
 Empat hal yang tidak bisa dibaca dari berkasnya sendiri:
 
@@ -469,6 +475,8 @@ Empat hal yang tidak bisa dibaca dari berkasnya sendiri:
 **Server ada karena pekerjaan nyata, bukan karena memindahkan konstanta.** Endpoint yang hanya mengembalikan angka tulisan tangan tidak menambah apa pun — ia cuma menambah lompatan dan satu tempat untuk salah ketik. Yang membuatnya bernilai justru tiga hal yang ada di sini: satu tempat yang tahu alamat sumbernya, satu tempat yang menentukan berapa lama hasil boleh dipakai, dan halaman yang tidak ikut gagal ketika pihak ketiga sedang tidak bisa dihubungi. Karena itu handler mengembalikan larik kosong ketika gagal, bukan melempar error.
 
 Bentuk responsnya sengaja dijaga tetap. Kalau sumbernya berubah — alamat, nama kolom, atau mulai memerlukan kunci API — yang berubah hanya handler; halaman dan composable tidak ikut tersentuh.
+
+Cache episode dua lapis, karena alur pemiliknya begitu: folder episode dibuat dulu, videonya diunggah belakangan. Build penuh (±70 permintaan, ±5 detik) jalan tiap jam di belakang; tapi folder yang kemarin kosong dicek ulang di setiap permintaan (±0,6 detik per folder) dan ditunggu, jadi video yang baru diunggah muncul saat refresh. Daftar folder dicek tiap 60 detik dan juga ditunggu, supaya folder episode yang baru dibuat — termasuk yang langsung diisi videonya — ikut muncul di refresh yang sama. `updatedAt` folder tidak bisa dipakai sebagai detektor — diuji, ia tidak berubah saat isi ditambah.
 
 Satu endpoint boleh punya query: `/api/running-man/clips?urutan=terpopuler`. Cache bawaan Nitro memakai `originalUrl` sebagai bagian kuncinya, jadi tiap nilai query punya salinan sendiri tanpa perlu kunci cache manual. Nilai yang tidak dikenal dijatuhkan ke urutan awal di server, **dan** kunci `useAsyncData` di sisi app ikut memuat urutannya — kalau tidak, berpindah tab akan membaca hasil cache urutannya yang lama, dan daftarnya tidak akan pernah berubah meski pilihannya berubah.
 
@@ -537,7 +545,7 @@ Yang perlu diingat dari luar file itu:
 - Warna baru masuk lewat lapisan 1, lalu diekspor ke lapisan 2. Jangan pernah melompati lapisan.
 - Lapisan 3 tetap kosong. Token komponen baru hanya ditambah kalau ada komponen yang benar-benar butuh nadanya sendiri.
 - Cyan murni tidak pernah jadi latar teks putih — kontrasnya 1,25:1.
-- `.konten`, `.kartu`, `.tombol`, `.input`, `.badge`, `.tabel`, dan `.ganda` sudah ada. Pakai ulang, jangan ditulis ulang. Jangan dihapus hanya karena belum terpakai.
+- `.konten`, `.kartu`, `.tombol`, `.input`, `.badge`, `.tabel`, `.ganda`, `.hitung`, dan `.kembali` sudah ada. Pakai ulang, jangan ditulis ulang. Jangan dihapus hanya karena belum terpakai.
 - `.kartu` menyertakan `:hover` yang menebalkan garis. Permukaan yang tidak bisa diklik ke mana pun perlu dimatikan, kalau tidak permukaannya terlihat bisa diklik padahal tidak ada yang terjadi:
 
 ```css
@@ -569,9 +577,9 @@ Jangan menulis `:deep(svg)`. `@nuxt/icon` merender ikon sebagai `<span class="ic
 
 | | Untuk | Dipakai di |
 |---|---|---|
-| `max-width: 30rem` | HP kecil, menyempit | `Header.vue`, `detail.vue`, `.konten` di `main.css` |
-| `min-width: 48rem` | tablet ke atas, melebar | `BottomNav.vue`, `search.vue`, daftar episode (2 kolom), pemutar |
-| `min-width: 64rem` | laptop ke atas | daftar episode (3 kolom) |
+| `max-width: 30rem` | HP kecil, menyempit | `Header.vue`, `detail.vue`, `.konten` di `main.css`, daftar episode, kartu "sedang diputar" |
+| `min-width: 48rem` | tablet ke atas, melebar | `BottomNav.vue`, `search.vue`, daftar episode (2 kolom), daftar klip (2 kolom), pemutar, kartu tayang beranda |
+| `min-width: 64rem` | laptop ke atas | daftar episode (3 kolom), daftar klip (3 kolom), daftar cast (2 kolom) |
 | `72rem` | **plafon, bukan breakpoint** | `--lebar-konten` |
 
 Aturannya **`max-width` untuk menyempit, `min-width` untuk melebar.** Menulis `max-width: 48rem` untuk layar sempit sama dengan menulis kondisi yang tidak pernah benar.
@@ -723,13 +731,17 @@ Aturan itu berlaku untuk teks yang belum jadi. Teks yang **sudah final dan beras
 
 ## Sumber data Running Man
 
-Data di `/detail` diambil dari tiga tempat, semuanya resmi:
+Data Running Man diambil dari beberapa tempat, semuanya resmi:
 
 | Yang diambil | Dari mana |
 |---|---|
 | Isi profil cast — nama, sapaan, deskripsi, karier, foto | `m.programs.sbs.co.kr/enter/runningman/cast/67779` |
 | Status anggota — siapa yang masih aktif | `m.naver.com` |
 | Data 지예은, karena tidak ada di SBS | `ko.wikipedia.org/wiki/지예은` |
+| Episode berikutnya — nomor dan tanggal tayangnya | 다시보기 SBS, `static.apis.sbs.co.kr/program-api/3.0/main/contents/runningman/vod/55286` |
+| Jam tayang tetap, dan `id` menu 다시보기 | `static.apis.sbs.co.kr/program-api/1.0/menu/runningman` |
+
+Dua yang terakhir dipakai `server/utils/running-man/jadwal.ts`; alasan menu `vod` dipakai dan bukan `clip` ada di berkas itu, bukan di sini.
 
 ```
 # Halaman cast SBS
@@ -741,14 +753,100 @@ https://search.naver.com/search.naver?where=news&sort=1&query=런닝맨+출연�
 
 Cara membaca hasil Naver: cari artikel yang menyebut **beberapa nama sekaligus** dalam satu kalimat. Itu lebih bisa dipercaya daripada beberapa artikel terpisah.
 
+Cara menjangkau tahun lama: `sort=3` (**오래된순**) **tidak** menjangkau 2010–2011 — hasilnya tetap 2016 ke atas, jadi dari situ menyimpulkan "Naver tidak punya data tahun itu" keliru. Yang bekerja adalah filter tanggal: `&pd=3&ds=2011.01.01&de=2011.12.31`. Dicek 16 Oktober 2026: dengan filter itu Naver mengembalikan artikel 2010 dan 2011 tanpa masalah.
+
 ### Halaman SBS tidak boleh dipercaya untuk status
 
-Halaman itu sudah lama tidak disentuh, dan isinya tidak cocok dengan keadaan sekarang:
+Halaman itu tidak cocok dengan keadaan sekarang, dan arah ketidakcocokannya berubah. Dicek ulang 16 Oktober 2026, dan `program-api/1.0/cast/runningman/67779` kini hanya mengembalikan **enam orang**: 유재석, 지석진, 김종국, 하하, 송지효, 양세찬.
 
-- **지예은** bergabung sejak Desember 2024 dan tidak ada di sana sama sekali
-- **이광수** dan **전소민** sudah keluar, tapi masih tercantum
+- **지예은** bergabung sejak Desember 2024 dan tetap tidak ada di sana
+- **이광수** dan **전소민** sudah keluar, dan keduanya **sudah dihapus SBS** dari daftar cast — tidak hanya masih tercantum seperti sebelumnya. Karena itu keduanya masih ada di data cast halaman detail: profilnya sudah diambil, dan untuk kelompok "sudah keluar" justru itu yang dibutuhkan. 이광수 keluar 27 April 2021 (연합뉴스), 전소민 23 Oktober 2023.
 
 Jadi `aktif` di data cast — ditulis di `app/pages/running-man/detail.vue` — diambil dari Naver, **bukan dari SBS**. Field itu tidak boleh diisi dari tebakan atau dari ingatan — kalau tidak ada sumbernya, biarkan kosong.
+
+Yang **tidak** jadi anggota tetap dan karena itu tidak masuk daftar, semuanya punya sumber: **강훈** dan **최다니엘** sebagai "임대 멤버" — tamu beranggotakan, bukan anggota tetap. 강훈 aktif episode 706–714 (Mei–Juli 2024, News1 dan OSEN 2024), 최다니엘 episode 747–781 (Maret–Desember 2025, News1 24 Maret 2025).
+
+**강호동** tidak pernah jadi anggota, dan ini sempat keliru tertulis di data cast. Dia memang diumumkan bergabung pada Desember 2016, lalu **membatalkan diri sehari kemudian** — itu satu-satunya peristiwa yang benar-benar bersumber. Semula ia sempat ditulis sebagai anggota 2010–2011 karena OSEN 27 Desember 2011 menulis "강호동의 하차 후", tapi kalimat itu soal **강심장** — program lain di blok SBS yang sama, bukan 런닝맨. Pencarian ulang seluruh 2010–2011 tidak menemukan satu pun artikel Naver yang memuat namanya bersama 런닝맨, dan en.wikipedia hanya menyebut namanya sekali, untuk pengumuman 2016 itu.
+
+Pelajarannya bukan soal 강호동: kalimat "X 하차 후" di berita 예능 sering menunjuk program lain di blok yang sama, dan nama yang tidak jelas tidak boleh diambil sebagai anggota acara yang sedang dibahas.
+
+### Statistik di halaman detail
+
+Bagian statistik dibangun di `app/pages/running-man/detail.vue`, bukan di `useRunningMan.ts`. Alasannya dua, dan keduanya soal data: hanya halaman detail yang menampilkan bagian itu, dan jumlah anggota harus dihitung dari `ANGGOTA` di berkas yang sama. Sempat `STATISTIK_TETAP` ada di composable dengan angka **"7" yang ditulis tangan** — pola yang sama dengan "822 episode" yang sudah dihapus: benar sampai daftar berubah, lalu basi tanpa ada yang memberitahu. Sekarang:
+
+| Kotak | Sumber |
+|---|---|
+| Episode | `episodeTercetak` — satu less dari nomor tayang berikutnya, hilang kalau SBS tidak bisa dihubungi |
+| Cast tetap | `anggota.filter(a => a.aktif).length` |
+| Sudah keluar | sisanya |
+| Hari tayang | ko.wikipedia: `매주 일요일 저녁 6:10 ~ 8:00` |
+
+Labelnya lewat kunci `statistik.*` di berkas locale, bukan teks jadi di TypeScript. Label lama ditulis apa adanya, sehingga kotak "Cast tetap" tetap Bahasa Indonesia di halaman berbahasa Inggris dan Korea.
+
+Yang **tidak** ditulis di sini: jaringan, tahun mulai tayang, dan durasi episode. Ketiganya sudah tampil di kartu acara (`acara.meta`), jadi mengulangnya membuat halaman mengulang dirinya sendiri.
+
+### Sapaan tanpa SBS
+
+`sapaan` untuk anggota SBS berasal dari baris `별명 :` di `castdsc`. Tiga anggota yang tidak ada di sana tidak punya baris itu, jadi `sapaan` mereka ditulis ulang dalam bentuk **keterangan faktual**, sama seperti 지예은 — bukan julukan karangan.
+
+| Nama | Isi | Sumber |
+|---|---|---|
+| 송중기 | dikenal lewat 《성균관 스캔들》 | ko.wikipedia. **Tidak ada `별명` sama sekali** di artikelnya — jadi tidak ada nama panggilan yang bisa diambil, dan yang ditulis adalah karyanya, bukan julukan |
+| Lizzy | nama panggung 2010–2018, sejak 2020 kembali ke nama lahir | en.wikipedia |
+| 개리 | dari sapaan "Gae" (개) waktu SMP | en.wikipedia |
+
+**Nama panggung Lizzy sudah berubah dua kali** dan ini bukan hal kecil: ia debut sebagai **Lizzy** (리지) bersama After School pada Maret 2010, mengganti nama promosinya jadi **Park Soo-ah** (박수아) pada 3 Juli 2018, lalu pada November 2020 memakai lagi **Park Soo-young** (박수영) — nama aslinya. Jadi "Lizzy" kini adalah nama panggung **lama**, bukan yang sedang dipakai. Entri tetap ditulis "Lizzy (Park Soo-young)" karena masa Running Man-nya 2010–2011 ada di bawah nama Lizzy, dan urutan itu mengikuti konvensi halaman: nama yang dikenal lebih dulu, nama lain di dalam kurung.
+
+### Anggota lama yang tidak punya profil
+
+Tiga orang pernah jadi anggota tetap lalu berhenti, tapi tidak pernah ada di halaman cast SBS, jadi tidak ada apa pun yang bisa diambil dari `castdsc` — foto, sapaan, deskripsi, maupun karier. Semuanya diisi ulang dari Wikipedia, satu per satu, dengan isinya dicatat di bawah ini. Yang tidak boleh terjadi adalah mengambil satu hal lalu mengarang sisanya: setiap isi harus punya sumbernya sendiri, dan isi yang sumbernya tidak ada — misalnya `별명` 송중기 — dibiarkan kosong.
+
+Mereka tetap **bagian dari kelompok "sudah keluar"**, dengan `aktif: false` dan `keluar` terisi di blok `ANGGOTA` — bukan daftar terpisah. Pemisahnya sudah jelas dari isi barisnya: yang punya profil punya foto, uraian, dan riwayat karier; yang tidak punya tidak. `v-if="satu.foto"` memilih antara foto dan mark huruf, jadi keduanya mengisi kotak yang sama.
+
+| Nama | Tanggal keluar | Sumber |
+|---|---|---|
+| 송중기 | Rabu, 27 April 2011 | "송중기, SBS '런닝맨' 하차" dan "송중기, '런닝맨' 10개월만에 하차…연기활동 전념" (2011.04.27); en.wikipedia mencatat episode 1–41, tayang terakhirnya 1 Mei 2011 |
+| Lizzy (박수영, After School) | 2011 | en.wikipedia episode 18–25, 2010–2011, berhenti karena jadwal grup |
+| 개리 (Gary) | Selasa, 25 Oktober 2016 | SBS resmi, pemberitaan 26 Oktober 2016 ("송지효 '개리 하차…'", "'월요커플' 안녕… 개리, '런닝맨' 하차"); en.wikipedia episode 1–324 |
+
+Hanya tahun **keluar** yang bisa ditulis untuk mereka, bukan rentang ikut penuh: episode awal mereka tidak tercatat di sumber yang dipakai di sini.
+
+Tiga anggota ini sekarang punya **deskripsi dan riwayat karier** juga, yang diambil dari Wikipedia karena `castdsc` SBS memang tidak memuat mereka — perlakuan yang sama seperti 지예은. Bedanya di sumber: **송중기** dari `ko.wikipedia.org/wiki/송중기`, sedangkan **Lizzy** dan **개리** hanya punya `en.wikipedia` — `ko.wikipedia` tidak punya artikel untuk keduanya. Karena itu judul karyanya hanya ditulis dalam bentuk Korea kalau memang ada di sumber; judul yang tidak bisa dipastikan bentuk Koreananya tidak dikarang, dan `id`/`en` memakainya dengan bentuk latin.
+
+Nama asli 개리 adalah **강희건**, bukan 길성호 — `길성호` itu nama panggung yang lebih lama yang tidak ada di artikel English Wikipedia, jadi tidak dipakai di mana pun.
+
+Tanggal yang ditulis adalah tanggal **pengumuman** keluar, bukan tanggal tayang episode terakhir. Alasannya: tanggal tayang terakhir tidak bersumber sama-rata — untuk 송중기 dan 개리 ada, untuk 이광수 dan 전소민 tidak ada satu tempat pun yang mencatatnya. Menulis satu orang dengan tanggal tayang dan yang lain dengan tanggal pengumuman membuat dua angka itu tidak sebanding.
+
+Nama hari bukan diisi satu per satu di data. `Intl.DateTimeFormat` yang memformat tanggal, bulan, tahun, sekaligus nama hari, karena nama bulan dan hari punya bentuk berbeda di tiap bahasa (`April` di id dan en, `4월` di ko) dan daftar itu harus diperbarui orang setiap kali locale bertambah.
+
+### Foto anggota yang tidak ada di SBS
+
+Foto untuk anggota yang tidak ada di halaman cast SBS **tidak boleh diambil dari berita**. Foto berita milik studio dan press, dan halaman ini **menautkan** URL, bukan menyimpan salinannya — menautkan foto berhak cipta milik orang lain bukan memakai foto. Fotografi punya hak yang sama dengan hak cipta: memotret seseorang tidak membebaskan hasilnya dipakai tanpa izin.
+
+Sumber yang boleh dipakai hanya yang berlisensi bebas: **Wikimedia Commons**. Foto yang dipakai:
+
+| Nama | Foto | Lisensi | Crédit |
+|---|---|---|---|
+| 송중기 | `Song_Joong-ki crop.JPG` (LGE, 3 Februari 2014), **dipotong** → `public/anggota/song-joong-ki.jpg` | CC BY 2.5 | `LGE / Wikimedia Commons, CC BY 2.5, dipotong` |
+| Lizzy | `Park_Soo-young_in_2019.png` (beautypl, 2019) | CC BY 3.0 | `beautypl / Wikimedia Commons, CC BY 3.0` |
+| 지예은 | `Ji_Ye-eun.jpg` (Republic of Korea) | CC BY-SA 4.0 | `Republic of Korea / Wikimedia Commons, CC BY-SA 4.0` |
+| 개리 | `Kang_Gary.jpg` (Jinho Jung), **dipotong** → `public/anggota/gary.jpg` | CC BY-SA 2.0 | `Jinho Jung / Wikimedia Commons, CC BY-SA 2.0` |
+
+Syarat Creative Commons mengizinkan pemakaian ulang **dan** meminta menyebut siapa fotografernya dan lisensinya. Bukan soal menjual: tanpa baris itu, pemakaian ulang sama sahnya dengan memakai tanpa izin. Karena itu setiap foto yang bukan dari SBS wajib mengisi `kredit` di blok `ANGGOTA`, dan baris atribusinya dirender oleh `.anggota__kredit`. Label "Foto" ikut bahasa pemakai lewat kunci `anggota.foto`. Kata "dipotong" di dalam `kredit` bukan hiasan: CC BY meminta perubahan terhadap karya dicantumkan, jadi foto yang dipotong wajib menyebutnya.
+
+Foto yang **tidak dipakai** meski bingkainya bagus: `Song_Joong_Ki.png` dari Fandom (`runningman.fandom.com`). Halaman berkasnya tidak punya metadata lisensi sama sekali, repository-nya `local` dan bukan Commons, dan nama berkas itu tidak dikenal di Commons maupun dipakai di artikel en.wiki. Itu foto berhak cipta yang dihost dengan kebijakan fair-use Fandom, bukan lisensi reuse — menautkan URL-nya berarti memakai foto tanpa izin, dan menyalinnya ke `public/` tidak menolong karena izinnya memang tidak ada. Bingkainya lebih baik, dan itu justru alasan foto itu tidak bisa dipakai.
+
+Empat padanan yang berlisensi di Commons sudah dibandingkan satu per satu, semuanya dipotong ke lingkaran 56px lalu dilihat hasilnya: `at Style Icon Asia 2016` dan `at Battleship Island Presscon` memotong puncak kepala, `Song Joong-ki 3.jpg` menampilkan tubuh. `Song_Joong-ki crop.JPG` yang sekarang adalah yang paling bagus bingkainya di antara yang boleh dipakai — dan dipotong lagi di repo supaya wajah memenuhi lingkaran.
+
+**개리** perlu dipotong. `Kang_Gary.jpg` satu-satunya potretnya di Commons dan itu foto panggung 338×602 penuh tubuh: dalam lingkaran 56px wajahnya tinggal sekitar delapan piksel, yang tidak bisa dikenali sebagai siapa pun. Potongannya 260px bujur sangkar disimpan di `public/anggota/gary.jpg` karena halaman tidak punya proses gambar — server tidak bisa memotong sesuai permintaan, jadi satu-satunya tempat potongan bisa lahir adalah berkas di repo. `Leessang.jpg`, satu-satunya berkas Gary lain di Commons, memuat dua orang sekaligus dan tidak bisa dipakai.
+
+Dua foto lain di Commons untuk Lizzy adalah foto **full body**, dan justru itu yang membuat wajahnya tidak terlihat: `object-fit: cover` memotong tengah, jadi yang tersisa perut dan tangan, bukan wajah. Potret 250×320 yang sekarang muat utuh di potongan tengah.
+
+Kalau nanti pemilik repo menaruh file sendiri di `public/anggota/`, cukup isi `foto` di blok `ANGGOTA` dan kosongkan `kredit`-nya kalau fotonya milik sendiri.
+
+Yang tetap **tidak** masuk, karena tidak ada satu pun sumber yang menyebut mereka sebagai anggota: **박명수**, **하오**, **최범준**, **최정원**, **유해진**, dan **강호동**. Beberapa di antaranya sering disebut sebagai anggota Running Man lama, tapi tidak ada artikel Naver maupun Wikipedia Korea yang memuatnya dalam daftar cast. Daftar cast yang tidak lengkap bukan bukti bahwa orangnya tidak pernah jadi anggota — hanya bukti bahwa tidak ada sumbernya di tempat yang dipakai di sini. Kalau nanti muncul sumber, perubahannya tetap satu tempat, di blok `ANGGOTA`. `유해진` dan `강호동` kemungkinan besar memang tidak pernah jadi anggota tetap; jangan menampilkan apa pun soal mereka sebelum ada sumber.
+
+Halaman detail menampilkan dua kelompok dari field itu: yang masih aktif, lalu yang sudah keluar. Dipisah dengan datanya sendiri, bukan `v-if` di dalam satu daftar — begitu badge status per baris bisa dihapus, karena “Aktif” di tujuh baris tepat di bawah judul “Aktif” cuma pengulangan. Kunci locale yang dipakai untuk judul kelompok sudah ada: `anggota.aktif` dan `anggota.keluar`. Kelompok yang kosong dibuang, bukan dirender kosong.
 
 지예은 punya satu perbedaan lagi. SBS menulis sapaan dan deskripsi dengan nada sindiran khas acara, dan itu ikut dialirkan ke terjemahan. Wikipedia tidak punya kalimat seperti itu — hanya daftar acara. Jadi entri itu memakai **teks biasa, bukan candaan**, dan isinya diambil dari paragraf pertama serta bagian pendidikan di Wikipedia. Meniru nada SBS berarti mengarang candaan yang tidak pernah diucapkan siapa pun.
 
