@@ -155,6 +155,41 @@ pohon struktur bisa disunting oleh dua pihak sekaligus. Baris seperti itu
 tidak boleh dipecah jadi dua — hasilnya sama saja, dan yang hilang
 justru jejaknya.
 
+### Kode uji coba tidak pernah boleh naik ke GitHub
+
+Kode sementara untuk menguji sesuatu — tombol yang menembakkan notifikasi
+palsu, data contoh, penanda yang sengaja dibiarkan salah biar terlihat,
+`console.log` untuk menelusuri — **harus dihapus sebelum push.** Bukan
+setelah push diperbaiki, dan bukan diabaikan karena "cuma satu commit".
+
+Alasannya bukan aturan disiplin. Kode uji coba naik dengan alasan yang
+masuk akal: ia bekerja, ia menyelesaikan masalah yang sedang dicari, dan
+tidak ada yang salah selama ia masih di sana. Masalahnya baru muncul
+nanti, dari tempat yang jauh lebih sulit dicari:
+
+- Orang berikutnya akan membacanya sebagai keputusan yang disengaja, bukan
+  sisa pekerjaan yang belum dibersihkan. Tombol yang menembakkan
+  notifikasi palsu terlihat seperti fitur — dan fitur yang tidak ada
+  gunanya.
+- Kode uji coba menggeser perilaku. Kalau yang dipanggilnya berubah, kodenya
+  ikut mati atau ikut salah — dan yang perlu diperbaiki nanti bukan lagi
+  kode pekerjaannya, tapi kaki sementara yang tidak pernah dimaksudkan ikut
+  jadi permanen.
+- Ia bertahan lebih lama dari yang diperkirakan. Yang untuk
+  "cuma dua menit" masih ada sebulan kemudian karena tidak ada yang
+  menyadarinya.
+
+Yang ditulis untuk menguji **tidak** termasuk kategori ini: unit test, dan
+data contoh yang memang bagian dari desain — `HASIL_CONTOH` di
+`useSearchOverlay.ts` begitu.
+
+Supaya tidak terlupa, kode uji coba diberi penanda di berkasnya sendiri —
+`CONTOH SEMENTARA` atau `UJI COBA, SEMENTARA` — dengan kalimat yang menyebut
+apa yang harus ikut dihapus bersamanya. Penanda itu hanya pengingat; ia
+tidak menggantikan penghapusan. Prinsipnya sama dengan bagian
+[Teks dummy](#teks-dummy) di [Multi bahasa](#multi-bahasa): dummy ada untuk
+sementara, dan "sementara" berakhir dengan menghapusnya.
+
 ## Identitas
 
 | Nama | Peran | Tampil di UI |
