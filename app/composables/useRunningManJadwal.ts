@@ -17,11 +17,24 @@
 
 import type { Jadwal } from '#shared/types/jadwal'
 
+/** Handler-nya di luar fungsi, bukan ditulis di dalam.
+ *
+ *  `useAsyncData` membandingkan opsi antar pemanggilan untuk benar-benar
+ *  menggabung dua permintaan dengan kunci sama — dan perbandingan itu
+ *  memakai identitas fungsi, bukan teksnya. Dua `() => $fetch(...)` yang
+ *  isinya identik tetap dua fungsi berbeda, jadi hasilnya bukan penggabungan
+ *  melainkan peringatan `NUXT_E3004: different handler` beserta dua
+ *  permintaan untuk data yang sama.
+ *
+ *  Hoisting membuat semua pemanggilan memakai instance yang sama, jadi
+ *  penggabungannya benar-benar terjadi. Yang memanggilnya sudah lebih dari
+ *  satu: `running-man/index.vue`, `running-man/detail.vue`, dan
+ *  `useEpisodeBaru.ts` yang dipasang di `app.vue`. Tiga-tiganya bisa aktif
+ *  bersamaan — yang di `app.vue` aktif di semua halaman. */
+const ambilJadwal = () => $fetch<Jadwal>('/api/running-man/jadwal')
+
 export async function useRunningManJadwal(): Promise<Ref<Jadwal | null>> {
-  const { data } = await useAsyncData<Jadwal>(
-    'running-man-jadwal',
-    () => $fetch<Jadwal>('/api/running-man/jadwal')
-  )
+  const { data } = await useAsyncData<Jadwal>('running-man-jadwal', ambilJadwal)
 
   return computed(() => data.value ?? null)
 }

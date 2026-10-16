@@ -268,5 +268,18 @@
     "keluar": "Has left",
     "hari": "Air day",
     "minggu": "Sunday"
+  },
+  "episode_baru": {
+    "satu": "Episode {nomor} has aired",
+    "banyak": "{jumlah} new episodes have aired"
+  },
+  "aktivitas": {
+    "buka": "Open activity history",
+    "buka_baru": "Open activity history, {jumlah} unread",
+    "ringkas": "Recent activity",
+    "lihat": "See all activity",
+    "kosong": "Nothing has happened on this browser yet. Anything announced to you will show up here.",
+    "jumlah": "recorded",
+    "kosongkan": "Clear history"
   }
 }

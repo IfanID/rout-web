@@ -5,6 +5,14 @@ const head = useLocaleHead({
   identifierAttribute: 'id',
   addSeoAttributes: true
 })
+
+// Notifikasi episode Running Man yang baru tayang.
+//
+// Di sini, sekali saja, supaya berlaku di halaman mana pun — bukan hanya di
+// halaman Running Man. Toaster di bawah sudah global, dan pemanggilnya harus
+// setara; kalau pemanggilnya hidup di satu halaman, toast bisa naik dari
+// halaman yang tidak pernah memasangnya. Lihat useEpisodeBaru.ts.
+useEpisodeBaru()
 </script>
 
 <template>

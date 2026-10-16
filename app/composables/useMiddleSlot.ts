@@ -109,7 +109,7 @@ const PINATASAN = [
   { id: 'running-man', ikon: '', huruf: 'R', label: 'Running Man', terjemah: false, ket: 'slot.running_man', ke: 'running-man', dalam: [] },
   { id: 'favorit', ikon: 'lucide:star', huruf: '', label: 'nav.favorit', terjemah: true, ket: 'slot.favorit', ke: '', dalam: [] },
   { id: 'tersimpan', ikon: 'lucide:bookmark', huruf: '', label: 'nav.tersimpan', terjemah: true, ket: 'slot.tersimpan', ke: '', dalam: [] },
-  { id: 'aktivitas', ikon: 'lucide:activity', huruf: '', label: 'nav.aktivitas', terjemah: true, ket: 'slot.aktivitas', ke: '', dalam: [] }
+  { id: 'aktivitas', ikon: 'lucide:activity', huruf: '', label: 'nav.aktivitas', terjemah: true, ket: 'slot.aktivitas', ke: 'aktivitas', dalam: [] }
 ] as const
 
 export type Shortcut = (typeof PINATASAN)[number]

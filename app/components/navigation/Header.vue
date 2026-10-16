@@ -20,6 +20,19 @@
           </span>
         </span>
       </span>
+
+      <!-- Lonceng riwayat aktivitas.
+           Di header, bukan di pojok halaman: notifikasi itu menyangkut
+           seluruh situs, bukan satu halaman, dan tempat yang selalu ada di
+           setiap halaman cuma header ini.
+
+           Diletakkan SETELAH teks berjala, lalu didorong ke kanan dengan
+           `margin-left: auto` (lihat `.header__lonceng`). Teks itu memang
+           mengisi ruang yang tersisa — `header__kanan` sudah `min-width: 0`
+           plus `overflow: hidden`, jadi ruang kosong boleh menyusut.
+           Kalau urutannya dibalik, teksnya yang menyempit dan loncengnya
+           yang bergeser. -->
+      <NotificationAktivitasBell class="header__lonceng" />
     </div>
   </header>
 </template>
@@ -79,18 +92,33 @@ onMounted(() => {
   top: 0;
   z-index: 40;
 
+  /* Tiga angka di bawah ini bukan gaya, melainkan KONTRAK dengan panel
+     lonceng di AktivitasBell.vue. Alasannya ada di sana; intinya begini:
+     panel itu absolut terhadap `.lonceng`, sehingga jaraknya ke tepi bawah
+     header tidak bisa hanya `jarak-panel` — di antara keduanya masih ada
+     sisa ruang baris, padding bawah header, dan garis bawahnya.
+
+     `--bawah-header` karena itu turunan dari dua angka lain, bukan angka
+     ketiga berdiri sendiri: begitu padding atau garisnya berubah,
+     turunannya ikut dan popup tetap menempel. */
+  --sisi-header: 1.5rem;
+  --pad-header: 0.1875rem;
+  --batas-header: 1px;
+  --bawah-header: calc(var(--pad-header) + var(--batas-header));
+
   /* Padding samping sengaja sama dengan `.konten` supaya isinya segaris
      persis di semua lebar. Kalau berbeda, di layar sempit logo bergeser
      beberapa piksel dari isi halaman — kecil, tapi terlihat karena
      keduanya ada di satu layar. */
-  padding: 0.1875rem 1.5rem;
+  padding: var(--pad-header) var(--sisi-header);
   background: var(--latar-naik-1);
-  border-bottom: 1px solid var(--garis-halus);
+  border-bottom: var(--batas-header) solid var(--garis-halus);
 }
 
 @media (max-width: 30rem) {
   .header {
-    padding-inline: 1rem;
+    --sisi-header: 1rem;
+    padding-inline: var(--sisi-header);
   }
 }
 
@@ -141,6 +169,26 @@ onMounted(() => {
 .header__jejak {
   display: flex;
   width: max-content;
+}
+
+/* Lonceng didorong ke tepi kanan baris, bukan ikut menempel di sebelah teks
+ * berjala.
+ *
+ * `margin-left: auto` di flex row menghabiskan sisa ruang di sebelah
+ * kirinya, jadi lonceng selalu rata kanan tanpa harus tahu lebar teksnya —
+ * teks berkedip, memotong, atau berganti isi, posisi loncengnya tidak
+ * bergerak. Tanpa itu, lonceng duduk di sebelah kanan teks dengan
+ * jarak `gap` dan posisinya ikut berubah setiap kali teks yang lebih
+ * pendek atau lebih panjang muncul.
+ *
+ * Rata kanan **kolom konten**, bukan tepi layar. `header__isi` dibatasi
+ * `max-width: var(--lebar-konten)` supaya logo dan judul halaman segaris
+ * dengan `.konten` di semua lebar — lonceng ikut aturan yang sama supaya
+ * tidak jadi satu-satunya yang meleset ke luar kolom pada layar lebar.
+ * Teks jalannya justru yang dipotong di layar sempit, dan itu memang
+ * tugasnya: ia ornament, bukan informasi. */
+.header__lonceng {
+  margin-left: auto;
 }
 
 /* Padding di dalam tiap potongannya, bukan di antaranya. Dengan begitu

@@ -268,5 +268,18 @@
     "keluar": "Sudah keluar",
     "hari": "Hari tayang",
     "minggu": "Minggu"
+  },
+  "episode_baru": {
+    "satu": "Episode {nomor} sudah tayang",
+    "banyak": "{jumlah} episode baru sudah tayang"
+  },
+  "aktivitas": {
+    "buka": "Buka riwayat aktivitas",
+    "buka_baru": "Buka riwayat aktivitas, {jumlah} belum dibaca",
+    "ringkas": "Aktivitas terbaru",
+    "lihat": "Lihat semua aktivitas",
+    "kosong": "Belum ada aktivitas tercatat di peramban ini. Notifikasi akan muncul di sini setelah muncul di layar.",
+    "jumlah": "aktivitas tercatat",
+    "kosongkan": "Hapus semua riwayat"
   }
 }

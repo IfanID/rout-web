@@ -268,5 +268,18 @@
     "keluar": "탈퇴한 멤버",
     "hari": "방송 요일",
     "minggu": "일요일"
+  },
+  "episode_baru": {
+    "satu": "{nomor}회가 방송되었습니다",
+    "banyak": "{jumlah}화가 새로 방송되었습니다"
+  },
+  "aktivitas": {
+    "buka": "활동 기록 열기",
+    "buka_baru": "활동 기록 열기, 읽지 않은 항목 {jumlah}개",
+    "ringkas": "최근 활동",
+    "lihat": "전체 활동 보기",
+    "kosong": "이 브라우저에 아직 기록된 활동이 없습니다. 알림이 뜨면 여기에 표시됩니다.",
+    "jumlah": "건 기록됨",
+    "kosongkan": "기록 지우기"
   }
 }
