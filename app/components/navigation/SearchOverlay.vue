@@ -69,16 +69,94 @@ const masukan = ref<HTMLInputElement | null>(null)
    sudah berjalan di jalur Escape, dan perilaku itu memang benar:
    tombol navbar kembali fokus supaya pemakainya tidak kehilangan
    tempatnya setelah menutup panel. */
+/* --- Kenapa keyboard harus diukur sendiri, bukan andalkan CSS ---
+   Panel ini punya dua tempat: di tengah layar, dan menempel di atas
+   keyboard. CSS hanya bisa memilih salah satu berdasarkan ukuran
+   layar, dan ukuran layar tidak berubah karena keyboard naik.
+
+   Satuan seperti `dvh` terlihat seperti jalan keluarnya, tapi bukan:
+   `dvh` menyusut saat keyboard muncul hanya di sebagian peramban. Kalau
+   kita bergantung padanya dan ternyata tidak menyusut, panel turun ke
+   tepi bawah kotak yang masih setinggi layar penuh — dan input-nya
+   justru tertutup keyboard. Kegagalan yang diam, dan lebih buruk
+   daripada tidak menempel sama sekali.
+
+   Jadi tinggi keyboard dihitung di sini, dari `visualViewport`, lalu
+   dipakai langsung sebagai jarak bawah. Kalau pengukurannya gagal,
+   hasilnya `0`: panel tetap di tengah seperti semula.
+
+   Rumus `innerHeight - height - offsetTop` adalah selisih antara
+   viewport layout dan viewport visual. `offsetTop` ikut dikurangi
+   karena di iPhone Safari halaman ikut tergulir saat keyboard naik —
+   tanpa itu, selisihnya melebihi tinggi keyboard sebenarnya. */
+const jarakBawah = ref(0)
+
+/* Di bawah angka ini dianggap "bukan keyboard". 120px: keyboard ponsel
+   apa pun lebih tinggi, sedangkan hal lain yang ikut mengubah viewport
+   — URL bar yang menyusut, pembulatan piksel — tidak sampai.
+
+   Satu angka ini dipakai dua kali: menentukan apakah panel perlu
+   berubah tempat, sekaligus membuka jalan ke nilai `jarakBawah`. Kalau
+   tidak diberi ambang, selisih satu dua piksel sudah cukup membuat
+   panel duduk di tepi bawah tanpa keyboard apa pun di layar. */
+const AMBANG_KEYBOARD = 120
+
+function ukurKeyboard() {
+  const vv = window.visualViewport
+
+  /* Zoom bukan keyboard. `scale` naik saat orang memperbesar
+     tampilan, dan itu ikut memperkecil `height`, jadi tanpa baris ini
+     satu cubitan jari akan membuat panel turun ke bawah layar. */
+  if (!vv || vv.scale !== 1) return
+
+  const insets = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+  jarakBawah.value = insets > AMBANG_KEYBOARD ? insets : 0
+}
+
+/* Dipakai sebagai kelas di template, bukan sebagai angka. Yang
+   dibutuhkan CSS cuma "keyboard ada atau tidak" — angka aslinya sudah
+   ada di `jarakBawah`. */
+const keyboardTerbuka = computed(() => jarakBawah.value > 0)
+
+/* Listener-nya milik jendela, bukan milik komponen, jadi harus dilepas
+   sendiri. Dua tempat memanggilnya, dan keduanya memang perlu:
+
+   - `watch` di bawah, saat panel ditutup lewat jalur biasa
+   - `onUnmounted`, saat pengguna menutup tab atau menekan back
+
+   Yang kedua tidak bisa mengandalkan `watch`: watcher berhenti jalan
+   ketika komponen dibuang, jadi `terbuka` yang berubah di dalam
+   `onUnmounted` tidak akan pernah menyentuh blok penutupannya. Tanpa
+   baris di `onUnmounted`, listener-nya tertinggal seumur hidup tab. */
+function lepasPendengar() {
+  window.visualViewport?.removeEventListener('resize', ukurKeyboard)
+  jarakBawah.value = 0
+}
+
 watch(terbuka, async nilai => {
   const el = layar.value
   if (!el) return
 
   if (nilai) {
     if (!el.open) el.showModal()
+
+    /* Listener dipasang sebelum fokus, supaya keyboard yang naik
+       seusai `focus()` di bawah tidak terlewat. Nilai sebelumnya sudah
+       pasti nol — `lepasPendengar()` yang menaruhnya kembali begitu
+       panel ditutup — jadi tidak ada pengukuran awal di sini. */
+    window.visualViewport?.addEventListener('resize', ukurKeyboard)
+
     await nextTick()
     masukan.value?.focus()
+
+    /* Keyboard belum tentu sudah terlihat di detik ini — Chrome
+       memunculkannya belakangan. Panggilan di sini hanya menangkap
+       keadaan kalau kebetulan sudah naik. Naik-turutnya ditangani
+       event resize yang dipasang di atas. */
+    ukurKeyboard()
   } else if (el.open) {
     el.close()
+    lepasPendengar()
   }
 })
 
@@ -134,9 +212,16 @@ function hapusTeks() {
    Efeknya kunjungan berikutnya ke /search ter-render dengan panel
    terbuka tanpa diminta. Karena state itu di luar komponen, yang
    bisa membersihkannya hanya komponen ini, dan komponen baru dibuat
-   setelah halaman selesai dirender. Jadi harus di `onUnmounted`. */
+   setelah halaman selesai dirender. Jadi harus di `onUnmounted`.
+
+   `lepasPendengar()` ikut di sini bukan karena panel perlu dibersihkan
+   dua kali, tapi karena listener `resize` di `window.visualViewport`
+   milik jendela — dan yang milik jendela tidak ikut hilang bersama
+   komponen. Watcher sudah berhenti pada titik ini, jadi tidak ada
+   jalur lain yang bisa membawanya pulang. */
 onUnmounted(() => {
   if (terbuka.value) tutup()
+  lepasPendengar()
 })
 </script>
 
@@ -144,6 +229,8 @@ onUnmounted(() => {
   <dialog
     ref="layar"
     class="cari__layar"
+    :class="{ 'cari__layar--keyboard': keyboardTerbuka }"
+    :style="jarakBawah ? { '--jarak-bawah': `${jarakBawah}px` } : undefined"
     :aria-label="t('cari.panel')"
     @click="saatKlik"
     @close="saatTutup"
@@ -318,7 +405,18 @@ onUnmounted(() => {
 .cari__layar {
   width: 100%;
   max-width: none;
+
+  /* `height: 100%` itu disengaja. Tinggi keyboard dihitung dari
+     `visualViewport`, bukan dari satuan viewport — lihat catatan panjang
+     di `ukurKeyboard()`. Satuan `dvh` terlihat seperti jalan yang lebih
+     ringkas, tapi ia hanya menyusut di sebagian peramban, dan kalau
+     ternyata tidak menyusut maka input justru tertutup keyboard.
+
+     Kotaknya tetap setinggi layar penuh supaya `padding-bottom` di
+     bawah punya arti: kalau kotaknya ikut menyusut, jarak yang
+     ditambahkan akan menghitung keyboard dua kali. */
   height: 100%;
+
   max-height: none;
   padding: 0;
   border: 0;
@@ -356,6 +454,50 @@ onUnmounted(() => {
 
 .cari__layar::backdrop {
   background: transparent;
+}
+
+/* --- Panel menempel di atas keyboard ---
+   Dua tempat, bukan satu. Bawaannya di tengah layar seperti sebelumnya;
+   menempel di atas keyboard HANYA ketika keyboard benar-benar menutupi
+   layar — yaitu ketika `.cari__layar--keyboard` menyala.
+
+   Kelas itu datang dari `ukurKeyboard()` di script, bukan dari media
+   query. Alasannya ada di catatan di sana: tidak ada satuan CSS yang
+   bisa memberi tahu keyboard sedang muncul. Kalau aturan ini memakai
+   breakpoint saja, panel akan duduk di tepi bawah sepanjang waktu —
+   dan tepi bawah itu tempat navbar berada, jadi yang muncul bukan panel
+   melainkan navbar kedua.
+
+   Dua bendanya bedanya nyata:
+
+   - `justify-content: flex-end` memindahkan panel ke tepi bawah.
+     `justify-content` bekerja di sumbu utama, dan sumbu utama
+     `flex-direction: column` ada di vertikal — jadi yang berubah arah
+     ke bawah, bukan ke kanan.
+   - `padding-bottom: var(--jarak-bawah)` adalah tinggi keyboard itu
+     sendiri, yang diukur di script. Angka inilah yang membuat
+     panel berhenti tepat di tepi atas keyboard, tanpa celah: `1rem`
+     bawaan di `.cari__layar[open]` justru akan meninggalkan 16px
+     kosong di sana, dan itu yang harus dihilangkan. Sisi kiri dan kanan
+     tetap 1rem, jadi panel tidak pernah menyentuh tepi layar.
+
+   Angka 30rem bukan angka baru — itu breakpoint "HP kecil" yang sudah
+   dipakai Header.vue, detail.vue, dan .konten di main.css. Di atasnya
+   keyboard tidak muncul sebagai lapisan yang menutupi viewport seperti
+   di ponsel, jadi panel tetap di tengah apa pun yang dibaca
+   `ukurKeyboard()`.
+
+   Belum diuji di perangkat. Yang belum dijamin: apakah
+   `visualViewport` benar-benar menyusut di iPhone Safari dan Android
+   Chrome saat keyboard virtual muncul. Kalau ternyata tidak, yang terjadi
+   panel tetap di tengah — yaitu perilaku sebelum perubahan ini, bukan
+   kegagalan yang menutupi input. */
+
+@media (max-width: 30rem) {
+  .cari__layar[open].cari__layar--keyboard {
+    justify-content: flex-end;
+    padding-bottom: var(--jarak-bawah, 0px);
+  }
 }
 
 .cari__panel {
