@@ -24,11 +24,13 @@
  *  yang sama jauh lebih cepat.
  *
  *  Parameter:
- *  - `id`       id klip yang sedang ditonton.
+ *  - `id`       id klip yang sedang ditonton. Dipakai dua kali: untuk
+ *               mencari tetangganya, dan — kalau pencarian itu tidak bisa
+ *               jalan — untuk membaca klip itu sendiri dari indeks proses.
  *  - `tanggal`  tanggal tayangnya, `YYYY-MM-DD` — dipakai untuk mencari
  *               posisinya. Tanggal ini datang dari titipan daftar; tanpa
- *               itu pencariannya tidak bisa dijalankan, dan endpoint ini
- *               mengembalikan kosong. */
+ *               itu posisi klipnya tidak bisa dicari, tapi `klip` tetap
+ *               diisi dari indeks. */
 
 /** Berapa klip yang diperiksa di sekitar posisi yang ditemukan.
  *
@@ -51,6 +53,22 @@ interface Sekitar {
 }
 
 const KOSONG: Sekitar = { klip: null, sebelum: null, sesudah: null }
+
+/** Bentuk kembalian saat tetangganya tidak bisa dicari, tapi klipnya sendiri
+ *  masih bisa dibaca.
+ *
+ *  Ini jalur yang dipakai halaman yang dibuka lewat tautan langsung, lewat
+ *  hasil pencarian, atau lewat tautan yang dibagikan: tanggal tidak datang
+ *  dari titipan daftar, jadi pencarian biner tidak dijalankan. Tanpa
+ * Cadangan ini, `klip` di halaman itu selalu `null` dan judulnya jatuh ke
+ *  teks cadangan — padahal judul, episode, tanggal, durasi, dan thumbnail
+ *  klip itu semuanya sudah ada di indeks proses.
+ *
+ *  Dua jalan yang jadi benar: handler ini sudah menerima `id`, jadi
+ *  tidak ada endpoint baru dan tidak ada permintaan tambahan. */
+function denganKlip(id: string): Sekitar {
+  return { klip: cariKlipById(id), sebelum: null, sesudah: null }
+}
 
 /** Mencari satu klip lewat idnya di sekitar satu offset. */
 async function cariDiSekitar(
@@ -85,7 +103,11 @@ export default defineCachedEventHandler(
     /* Bentuk yang salah ditolak lebih awal, bukan diteruskan ke pencarian
      * yang akan membuang 14 permintaan untuk hasil yang pasti kosong. */
     if (!/^[A-Za-z0-9]{4,}$/.test(id)) return KOSONG
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return KOSONG
+
+    /* Tanpa tanggal, pencarian biner tidak bisa dijalankan — tapi klipnya
+     * sendiri masih bisa dibaca dari indeks, jadi ini bukan "tidak ada
+     * apa-apa". */
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return denganKlip(id)
 
     try {
       const posisi = await cariPosisiTanggal(tanggal)
@@ -96,6 +118,9 @@ export default defineCachedEventHandler(
       for (const lebar of [JENDELA, JENDELA * 2]) {
         const hasil = await cariDiSekitar(posisi, lebar, id)
 
+        /* Hasil pencarian biner dipakai utuh, termasuk `klip`-nya: itu
+         * blok yang baru diambil dari SBS, jadi paling segar. Indeks hanya
+         * jadi cadangan kalau ini gagal. */
         if (hasil) return hasil
       }
     } catch (error) {
@@ -105,7 +130,7 @@ export default defineCachedEventHandler(
       console.warn('[sekitar] gagal mencari tetangga:', error)
     }
 
-    return KOSONG
+    return denganKlip(id)
   },
   { name: 'running-man-sekitar', maxAge: TTL_SEKON }
 )

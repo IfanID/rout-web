@@ -27,6 +27,7 @@
 
 const route = useRoute()
 const localePath = useLocalePath()
+const { t, locale } = useI18n()
 
 /* Id dibaca sebagai computed, bukan sekali di awal, karena berpindah dari
  * satu klip ke klip lain itu route yang sama dengan parameter berbeda:
@@ -62,10 +63,17 @@ if (!/^[A-Za-z0-9]{4,}$/.test(id.value)) {
  * daftar acak, jadi "tetangganya" juga acak — klip 2020 dan 2015 muncul
  * berdampingan dengan klip 2026.
  *
- * Titipan dari daftar tetap dipakai, tapi cuma untuk dua hal: judul klip
- * ini, dan tanggalnya — tanggal itu yang dipakai server untuk mencari
- * posisinya di arsip. Tanpa tanggal (halaman dibuka lewat tautan
- * langsung), tetangganya kosong dan dua slot itu diisi klip acak.
+ * Titipan dari daftar tidak boleh jadi sumber judul. Dulu itu satu-satunya
+ * sumbernya, jadi halaman yang dibuka lewat tautan langsung, lewat hasil
+ * pencarian, atau lewat tautan yang dibagikan tidak punya judul sama sekali
+ * — semuanya jatuh ke teks cadangan. Sekarang server mengisi `sekitar.klip`
+ * sendiri dari indeks, jadi halaman tidak bergantung pada halaman mana pun
+ * yang barusan dibuka.
+ *
+ * Yang masih harus datang dari titipan cuma satu: tanggalnya. Tanggal itu
+ * yang dipakai server untuk mencari posisinya di arsip, dan posisinya tidak
+ * bisa diketahui tanpa pencarian biner atas tanggal. Tanpa titipan, tetangganya
+ * kosong dan dua slot itu diisi klip acak.
  *
  * Kunci `useKlipAcak` tetap, jadi berpindah klip tidak mengocok ulang
  * bagian acaknya. Kunci `useKlipSekitar` memuat id, jadi tetangganya
@@ -113,8 +121,16 @@ const klipLain = computed(() => {
 
 /** Klip yang sedang ditonton, untuk judul dan metanya.
  *
- *  Dari titipan kalau ada; kalau tidak, dari daftar yang dimuat di sini.
- *  Judul klip tidak ada di data stream-nya — lihat catatan `klipDiketuk`. */
+ *  Dari `sekitar` dulu: server sudah membaca klip ini sendiri — dari blok
+ *  SBS kalau pencarian biner berhasil, dari indeks kalau tidak. Baru setelah
+ *  itu titipan, lalu daftar acak.
+ *
+ *  Urutan itu penting. `sumber` tidak akan pernah punya klip ini, karena
+ *  `useKlipAcak` dikecualikan dengan id-nya sendiri supaya tidak tampil
+ *  dua kali di "Klip lain" — jadi `find()` di sana selalu gagal.
+ *
+ *  Judul klip tidak ada di data stream-nya, itu sebabnya halaman ini
+ *  butuh sumber terpisah untuk itu. */
 const klip = computed(
   () =>
     sekitar.value?.klip ??
@@ -122,7 +138,17 @@ const klip = computed(
     sumber.value.find(satu => satu.id === id.value)
 )
 
-const judul = computed(() => klip.value?.judul || 'Klip Running Man')
+/** Judul klip, atau teks cadangan kalau klipnya belum bisa dibaca.
+ *
+ *  Cadangannya lewat `t()`, bukan teks yang ditulis di sini. Kalau ditulis
+ *  apa adanya, halaman berbahasa Inggris dan Korea ikut menampilkan Bahasa
+ *  Indonesia — dan kalimatnya juga beda dari yang dipakai hasil pencarian,
+ *  jadi keadaan yang sama punya dua nama berbeda.
+ *
+ *  `cari.klip_tanpa_judul` dipakai karena itu memang artinya: SBS
+ *  mengunggah klip tanpa judul, dan mengarang judul lebih buruk daripada
+ *  mengatakannya. */
+const judul = computed(() => klip.value?.judul || t('cari.klip_tanpa_judul'))
 
 /* Urutan ikut dibawa ke daftar, supaya "Semua klip" mengembalikan orang ke
    urutan yang sedang dibacanya, bukan selalu ke Terbaru. */
@@ -132,7 +158,7 @@ const urutan = computed(() => urutanKlip(route.query.urutan))
 const tautan = computed(() => tautanKlip(id.value))
 
 /* Format durasi yang sama dengan di `PreviewList.vue`. Bukan dipakai
- * `Intl` di sini: yang diformat adalah durasi, bukan tanggal. */
+   `Intl` di sini: yang diformat adalah durasi, bukan tanggal. */
 function durasi(detik: number) {
   const menit = Math.floor(detik / 60)
   const sisa = detik % 60
@@ -140,23 +166,56 @@ function durasi(detik: number) {
   return `${String(menit).padStart(2, '0')}:${String(sisa).padStart(2, '0')}`
 }
 
-/* Episode dan durasi saja. Tanggal sengaja tidak ikut: halaman klip sudah
-   punya keduanya, dan tanggal menambah satu baris tanpa menambah sesuatu
-   yang perlu diketahui orang untuk menonton.
+/* Pembuat format dibuat sekali per bahasa, bukan sekali per render —
+   bentuk dan alasannya sama dengan di `PreviewList.vue`: `Intl` itu
+   mahal, ia turun ke data lokalitas setiap kali dibuat. */
+const formatTanggal = computed(
+  () =>
+    new Intl.DateTimeFormat(locale.value, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+)
 
-   Daftar, bukan kalimat gabungan. Sebelumnya keduanya disatukan dengan
-   " · " jadi satu baris abu-abu yang harus diurai; sebagai daftar
-   keterangan, tiap bagian punya ikonnya sendiri dan bisa dipindai satu
-   per satu — bentuk yang sama dengan kartu acara di halaman detail.
+/** Tanggal `2025-11-09` jadi "9 November 2025".
+ *
+ *  `T00:00:00` ikut ditambahkan: tanpa itu `new Date('2025-11-09')`
+ *  ditafsirkan sebagai tengah malam UTC, dan di wilayah yang sehari lebih
+ *  ke belakang tanggalnya bergeser ke tanggal sebelumnya. */
+function tanggal(iso: string) {
+  if (!iso) return ''
 
-   Yang kosong dibuang dari daftarnya, bukan ditampilkan sebagai butir
-   tanpa isi: klip lama dari SBS tidak selalu punya durasi. */
+  return formatTanggal.value.format(new Date(`${iso}T00:00:00`))
+}
+
+/* Episode, tanggal, dan durasi.
+   *
+   Daftar, bukan kalimat gabungan. Semuanya disatukan dengan " · " jadi
+   satu baris abu-abu yang harus diurai; sebagai daftar keterangan, tiap
+   bagian punya ikonnya sendiri dan bisa dipindai satu per satu — bentuk
+   yang sama dengan kartu acara di halaman detail.
+ *
+ *  Tanggal ikut, dan bukan karena halaman ini kekurangan baris. Episode
+ *  saja tidak memberi tahu klip ini dari mana: "Episode 777" bisa
+ *  artinya apa saja tanpa tahun, sedangkan "Episode 777 · 9 November
+ *  2025" sudah cukup untuk tahu itu dari akhir 2025. Yang perlu diketahui
+ *  orang sebelum menonton justru itu.
+ *
+ *  Ketiganya sudah tampil persis di baris "Episode … · …" pada tiap
+ *  baris "Klip lain" di bawah halaman, jadi ini mengulang informasi
+ *  yang ada, bukan menambah yang baru.
+ *
+ *  Yang kosong dibuang dari daftarnya, bukan ditampilkan sebagai butir
+ *  tanpa isi: klip lama dari SBS tidak selalu punya episode maupun
+ *  durasi. */
 const metaKlip = computed(() => {
   const satu = klip.value
   if (!satu) return []
 
   return [
     satu.episode && { ikon: 'lucide:tv', nilai: satu.episode },
+    satu.tanggal && { ikon: 'lucide:calendar', nilai: tanggal(satu.tanggal) },
     satu.detik && { ikon: 'lucide:clock', nilai: durasi(satu.detik) }
   ].filter((butir): butir is { ikon: string; nilai: string } => Boolean(butir))
 })

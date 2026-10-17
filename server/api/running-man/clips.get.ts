@@ -100,7 +100,18 @@ export default defineCachedEventHandler(
         : JUMLAH
 
     try {
-      return await ambilKlip(offset, limit, URUTAN[urutan])
+      const hasil = await ambilKlip(offset, limit, URUTAN[urutan])
+
+      /* Klip yang barusan diambil halaman ikut diserap ke indeks
+       * pencarian. Tanpa ini, data yang sama diambil dua kali dari SBS:
+       * sekali untuk halaman, sekali untuk indeks. Dengan ini, beranda
+       * dan daftar klip sama-sama menyumbang bagian terbaru indeks.
+       *
+       * Aman untuk keadaan apa pun: yang sudah dikenal tidak ditambahkan
+       * lagi, dan fungsi itu tidak pernah menandai indeks lengkap. */
+      catatKlip(hasil)
+
+      return hasil
     } catch (error) {
       /* Kegagalan di sini bukan berarti halaman harus ikut gagal. Bagian
        * klip boleh kosong sementara bagian lain tetap tampil, dan lebih

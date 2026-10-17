@@ -180,8 +180,7 @@ nanti, dari tempat yang jauh lebih sulit dicari:
   menyadarinya.
 
 Yang ditulis untuk menguji **tidak** termasuk kategori ini: unit test, dan
-data contoh yang memang bagian dari desain — `HASIL_CONTOH` di
-`useSearchOverlay.ts` begitu.
+data contoh yang memang bagian dari desain.
 
 Supaya tidak terlupa, kode uji coba diberi penanda di berkasnya sendiri —
 `CONTOH SEMENTARA` atau `UJI COBA, SEMENTARA` — dengan kalimat yang menyebut
@@ -251,6 +250,7 @@ rout-web/
 │   │   │   ├── BottomNav.vue    Navbar bawah + slot tengah yang bisa diganti
 │   │   │   ├── LocaleSwitcher.vue
 │   │   │   ├── SearchOverlay.vue   Panel cari melayang
+│   │   │   ├── SearchGroupDialog.vue Popup daftar lengkap satu kelompok
 │   │   │   └── slot/
 │   │   │       ├── SlotMark.vue    Mark satu item slot: ikon atau huruf
 │   │   │       └── SlotSelect.vue  Pemicu + menu pilih isi slot tengah
@@ -260,12 +260,16 @@ rout-web/
 │   │   ├── ClipPlayer.vue      Pemutar klip di halaman satu klip
 │   │   ├── LivePlayer.vue      Pemutar live YouTube, mulai sendiri tanpa suara
 │   │   ├── PreviewList.vue     Daftar klip, dipakai beranda + /preview
-│   │   └── PreviewSort.vue     Tab urutan klip: terbaru, terlama, terpopuler
+│   │   ├── PreviewSort.vue     Tab urutan klip: terbaru, terlama, terpopuler
+│   │   └── SearchResultRow.vue Satu baris hasil pencarian
 │   ├── composables/
+│   │   ├── useCari.ts            Kueri, penggabungan hasil, keadaan tampilan
+│   │   ├── useCariHalaman.ts     Sumber halaman + cast untuk pencarian
 │   │   ├── useHitungMundur.ts    Aturan fase hitung mundur + penanda waktunya
 │   │   ├── useNotifications.ts
 │   │   ├── useMiddleSlot.ts      Pintasan slot tengah navbar + route-nya
 │   │   ├── useRunningMan.ts      Data acara, dipakai beranda + detail
+│   │   ├── useRunningManAnggota.ts Data cast, dipakai detail + pencarian
 │   │   ├── useRunningManClips.ts Klip tayang, diambil dari /api/running-man/clips
 │   │   ├── useRunningManEpisode.ts Episode dari abyss, /api/running-man/episode
 │   │   ├── useRunningManJadwal.ts Jadwal tayang, /api/running-man/jadwal
@@ -290,21 +294,31 @@ rout-web/
 │       └── (settings)/
 │           └── settings.vue    → /settings
 ├── server/
-│   ├── api/running-man/
-│   │   ├── acak.get.ts          → /api/running-man/acak, sengaja tidak dicache
-│   │   ├── clips.get.ts         → /api/running-man/clips
-│   │   ├── episode.get.ts       → /api/running-man/episode
-│   │   ├── jadwal.get.ts        → /api/running-man/jadwal, episode berikutnya
-│   │   └── sekitar.get.ts       → /api/running-man/sekitar, tetangga satu klip
+│   ├── api/
+│   │   ├── cari.get.ts            → /api/cari, pencarian arsip klip
+│   │   └── running-man/
+│   │       ├── acak.get.ts          → /api/running-man/acak, sengaja tidak dicache
+│   │       ├── clips.get.ts         → /api/running-man/clips
+│   │       ├── episode.get.ts       → /api/running-man/episode
+│   │       ├── jadwal.get.ts        → /api/running-man/jadwal, episode berikutnya
+│   │       └── sekitar.get.ts       → /api/running-man/sekitar, tetangga satu klip
+│   ├── plugins/
+│   │   └── indeks-cari.ts         Pemanasan indeks saat produksi hidup
 │   └── utils/running-man/
 │       ├── episode.ts           Sumber episode abyss.to
+│       ├── indeks-klip.ts       Indeks pencarian klip: bangun, simpan, segarkan
 │       ├── jadwal.ts            Sumber jadwal tayang SBS dan aturan tanggalnya
 │       └── klip.ts             Alamat, pemetaan, dan pencarian posisi di arsip
 ├── shared/
-│   └── types/
-│       ├── episode.ts           Bentuk episode yang menyeberang server ke app
-│       ├── jadwal.ts            Bentuk jadwal yang menyeberang dari server ke app
-│       └── klip.ts              Bentuk klip yang menyeberang dari server ke app
+│   ├── types/
+│   │   ├── cari.ts              Bentuk hasil dan status indeks pencarian
+│   │   ├── episode.ts           Bentuk episode yang menyeberang server ke app
+│   │   ├── jadwal.ts            Bentuk jadwal yang menyeberang dari server ke app
+│   │   └── klip.ts              Bentuk klip yang menyeberang dari server ke app
+│   └── utils/
+│       └── cari.ts              Normalisasi, token, skor, sorotan, keadaan
+├── test/
+│   └── cari.test.ts             Uji aturan pencarian dengan node --test
 └── public/
     ├── favicon.ico
     └── robots.txt
@@ -320,7 +334,7 @@ Halaman yang ada baru `/`, `/profile`, `/running-man`, `/running-man/detail`, `/
 
 Slot tengah punya enam halaman Running Man: beranda `/running-man` yang menampilkan satu kartu tayang berikutnya, pintasan ke dua halaman lain, dan limabelas klip terbaru dalam kotak yang bisa digulir, `/running-man/detail` yang memuat tentang acara, pengenalan anggota, dan statistik, `/running-man/episode` yang mendaftar episode, `/running-man/episode/streaming` untuk menonton satu episode, `/running-man/preview` yang mendaftar seluruh klip, dan `/running-man/preview/:id` yang memutar satu klip. Semuanya menyalakan tetesan navbar yang sama — diwarisi dari awalan path, bukan lewat kolom `dalam`.
 
-Data acara dibaca dari `app/composables/useRunningMan.ts` supaya tidak ada dua salinan angka yang bisa berbeda — angka itu dipakai tiga halaman. Data anggota cast kebalikannya: ditulis langsung di `app/pages/running-man/detail.vue`, karena halaman itu satu-satunya yang memakainya. Berkas terpisah baru berguna begitu ada pemakai kedua, dan selama belum ada ia cuma menambah satu berkas yang harus dibuka untuk memahami halaman itu. Teksnya, dalam tiga bahasa, tetap tinggal di blok `anggota` pada berkas locale.
+Data acara dibaca dari `app/composables/useRunningMan.ts` supaya tidak ada dua salinan angka yang bisa berbeda — angka itu dipakai tiga halaman. Data anggota cast tinggal di `app/composables/useRunningManAnggota.ts`: semula ditulis langsung di halaman detail karena hanya halaman itu yang memakainya, tapi pencarian sekarang juga membutuhkannya, jadi pemakai kedua itu sudah ada. Teksnya, dalam tiga bahasa, tetap tinggal di blok `anggota` pada berkas locale.
 
 Sumber untuk keduanya tercatat di bagian [Sumber data Running Man](#sumber-data-running-man).
 
@@ -490,6 +504,28 @@ Halaman di `app/pages/` tidak pernah di-prefix. `app/pages/about.vue` tetap `<Ab
 
 `Widget.client.vue` dan `Widget.server.vue` boleh berdampingan tanpa bentrok nama.
 
+### `<template>` pembungkus harus punya `v-if` atau `v-for`
+
+`<template>` tanpa direktif struktural bukan wrapper tembus — Vue mengompilasinya jadi **elemen `<template>` sungguhan**. Dua akibatnya, keduanya muncul tanpa error:
+
+- Isinya pindah ke DocumentFragment `.content` yang tidak pernah digambar, jadi **seluruh isi itu tidak terlihat di peramban** meski HTML-nya lengkap.
+- Saat hydration Vue memakai `el.content.firstChild` untuk menghidrasi anaknya. Kalau anak pertama itu anchor fragmen `<!--[-->` dari `v-for` di dalamnya — Comment, bukan elemen — Vue mengganti elemennya dengan anchor itu, lalu menghidrasi `firstChild`-nya yang `null`. Hasilnya `Cannot read properties of null (reading 'nodeType')`.
+
+Jadi pembungkus seperti ini tidak boleh ditulis:
+
+```vue
+<!-- salah: <template> tanpa direktif -->
+<section>
+  <template>
+    <template v-for="satu in kelompok" :key="satu.jenis">...</template>
+  </template>
+</section>
+```
+
+`v-for` dan `v-if` sudah menghasilkan fragmen dengan sendirinya, jadi pembungkus tidak perlu ada. Kalau pembungkus pernah ada karena `v-else`, lalu `v-else`-nya dihapus, **hapus juga pembungkusnya** — itu yang tersisa tidak akan pernah hilang sendiri. Bagian [Query bukan bagian dari route](#query-bukan-bagian-dari-route) menjelaskan akibat serupa dari state yang ikut basi.
+
+Untuk memastikan tidak ada yang lolos, lihat hasil SSR: elemen `<template>` di dalam badan halaman berarti ada yang salah.
+
 ### Batas kedalaman
 
 Tiga tingkat sudah cukup: `app/components/ui/button/ButtonPrimary.vue`. Kalau sudah mencapai level itu, pengelompokan di atasnya yang perlu ditinjau, bukan dibuat lebih dalam.
@@ -499,6 +535,8 @@ Kapan perlu membuat folder, dan kapan tidak, dijelaskan di [Organisasi folder](#
 ## Server
 
 `server/api/running-man/` melayani data yang diambil dari pihak ketiga. Yang ada sekarang: `clips.get.ts` (klip tayang dari SBS, dicache sebentar dengan `defineCachedEventHandler`), `jadwal.get.ts` (episode berikutnya, dihitung dari episode terakhir yang sudah tayang di SBS), `episode.get.ts` (daftar episode dari abyss.to), `sekitar.get.ts`, dan `acak.get.ts`.
+
+`server/api/cari.get.ts` melayani pencarian arsip klip. Sumber dan aturan indeksnya ada di `server/utils/running-man/indeks-klip.ts`; pencarian tidak menanyakan SBS per permintaan.
 
 Empat hal yang tidak bisa dibaca dari berkasnya sendiri:
 
@@ -547,6 +585,19 @@ Hanya halaman daftar klip yang menggulir, dan `useMuatKlipLagi` yang punya `Inte
 
 Tidak ada ikatan angka antara handler dan app. `offset` dihitung dari panjang daftar yang sudah dimiliki halaman, bukan dari ukuran halaman, jadi mengubah angkanya tidak membuat klip terlewat atau terulang. Yang perlu dijaga hanya di app: `useMuatKlipLagi` membandingkan `tambahan.length` dengan angka yang **diminta**, bukan dengan konstanta — balasan yang lebih pendek berarti arsipnya sudah habis.
 
+### Metadata klip diambil sendiri, bukan dititipkan
+
+Halaman satu klip **tidak boleh** mengambil judul, episode, tanggal, durasi, atau thumbnail dari daftar halaman sebelumnya. Data stream SBS tidak memuat judul, jadi kalau judulnya datang dari titipan, semua cara masuk selain daftar berakhir dengan teks cadangan — tautan langsung, tautan yang dibagikan, refresh, dan hasil pencarian.
+
+Sekarang `sekitar.get.ts` mengisi `sekitar.klip` sendiri: dari blok SBS kalau pencarian biner berhasil, dari `cariKlipById()` di indeks kalau tidak. Handler itu sudah menerima `id`, jadi tidak ada endpoint dan permintaan baru.
+
+Dua aturan yang menutup lubang yang sama:
+
+- **Jangan menambahkan halaman baru yang bergantung pada daftar.** Kalau butuh metadata satu klip, baca dari indeks.
+- **`cariKlipById()` sengaja tidak menunggu `siapkanIndeks()`.** Halaman klip tidak boleh ikut tertahan build indeks; kalau klipnya belum ada, judul cadangan adalah jawaban yang benar.
+
+Yang masih boleh datang dari titipan cuma **tanggal** — posisi klip di arsip tidak bisa diketahui tanpa pencarian biner atas tanggal. Tanpa tanggal, dua slot "Klip lain" diisi klip acak, dan itu perilaku yang disengaja.
+
 Klip di halaman satu klip diputar **dari server SBS**, bukan lewat bingkai: player mereka di dalam bingkai pihak ketiga selalu gagal di Chrome karena cookie-nya diblokir, dan kegagalannya muncul sebagai `재생오류` dari mereka. `ClipPlayer` meminta sumbernya ke `play-api/1.0/sbs_vodall/preview/<id>`, dan kualitasnya ditentukan parameter `rscuse`: `05` memberi 1280x720 (6,24 Mbps), `01` memberi 856x480 (2,95 Mbps).
 
 Playlist klip itu hanya berisi **satu** kualitas, jadi `hls.js` tidak punya apa pun untuk diturunkan saat jaringan melambat — videonya tersendat sampai selesai. Karena itu kualitasnya dipilih sejak awal lewat `navigator.connection`: mode hemat data atau 2G/3G atau perkiraan di bawah 3 Mbps memakai 480p, sisanya 720p. Peramban yang tidak menyediakan informasi itu — Safari di iPhone — tetap mendapat 720p.
@@ -568,6 +619,86 @@ Tiga cara mengatasinya, pilih yang paling kecil:
 Cara lain yang tersedia — `definePageMeta({ key: route => route.fullPath })` — membuat seluruh komponen dibuat ulang. Berlebihan kalau yang perlu diperbarui cuma satu daftar, dan ia juga membuang state turunan yang justru perlu disimpan.
 
 Yang membuat jenis bug ini lolos: pemeriksaan lewat alamat langsung selalu benar, karena halaman itu dirender dari awal. Baru terlihat ketika peramban yang berpindah tanpa memuat ulang halaman.
+
+## Pencarian
+
+Pencarian punya dua lapis, dan pembagiannya bukan pilihan gaya:
+
+| Sumber | Dikerjakan di | Alasan |
+|---|---|---|
+| Halaman, anggota cast, episode | Browser | Teksnya ikut bahasa pemakai; jumlahnya kecil |
+| Klip | Server | ±8.800 baris, tidak mungkin dikirim ke peramban setiap kali |
+
+Aturan normalisasi, token, dan skor ada di `shared/utils/cari.ts` dan dipakai kedua sisi. Jangan menyalinnya ke komponen atau ke handler: dua salinan berarti dua urutan hasil yang berbeda untuk kueri yang sama. Semua token wajib cocok; jangan mengubahnya menjadi OR tanpa alasan yang diuji.
+
+**Menambah halaman** cukup satu entri di `app/composables/useCariHalaman.ts` dan kunci `cari.halaman.*` di tiga berkas locale. Halaman yang belum punya route tidak boleh masuk daftar — hasil yang tidak bisa diklik bukan hasil. Menambah **jenis sumber** baru berarti menambah satu fungsi skor di sisi yang memiliki datanya, bukan menulis ulang penggabungan di halaman.
+
+`?q=` adalah sumber kebenaran. Ketikan ditunda 300 ms lalu ditulis dengan `router.replace`, bukan `push`, supaya tombol back tidak mundur per huruf. Tautan hasil **selalu** `localePath({ name, params/query })`; argumen kedua `localePath` adalah bahasa, bukan params — kesalahan itu pernah dua kali menghasilkan `<a>` tanpa `href` di halaman klip.
+
+Panel adalah satu-satunya kolom ketik. Halaman tidak memasang kolom kedua — kolom itu hanya akan menjadi salinan panel dengan perilaku yang bisa berbeda. Petunjuk melayang di atas navbar sengaja dipertahankan: ia menunjuk ikon yang membuka panel, dan hanya muncul lima detik lewat animasi CSS. Jangan menggantinya dengan `setTimeout` di script.
+
+### Popup kelompok
+
+Hasil campuran memotong tiap kelompok. Selama masih ada sisa, baris “Menampilkan X dari Y” mendapat tombol **Lihat semua**. Tombol itu membuka `SearchGroupDialog.vue`, bukan route atau query baru:
+
+- Hasil campuran tetap di belakang popup; URL tetap `?q=`.
+- Tidak ada tab di dalam popup. Untuk melihat kelompok lain, popup ditutup lalu tombol “Lihat semua” di kelompok itu ditekan.
+- Halaman, cast, dan episode sudah ada di browser; klip dimuat bertahap 50 per tekan dengan `offset`/`limit` karena arsipnya ribuan.
+- Datanya dikirim lewat prop dari halaman. **Jangan memanggil `useCari()` di dalam dialog** — itu membuat `useAsyncData` dan watcher kedua untuk kueri yang sama.
+- Satu baris hasil dirender `SearchResultRow.vue`, dipakai daftar campuran dan popup — jangan menulis markup baris dua kali.
+
+Sorotan keterangan hanya dirender kalau judul tidak punya kecocokan. Tanpa aturan itu, `q=2` akan menyorot setiap tanggal dan durasi klip yang judulnya sudah jelas cocok.
+
+Anggota cast **dicari lewat nama saja** — `latin` dan `nama`, keduanya berbobot penuh. `sapaan` bukan field pencarian, tapi **tetap tampil** di baris kedua: lewat `keteranganSisa`, bukan `keterangan`, supaya yang bisa disorot tetap nama Korea sedangkan kalimat sindirannya tampil tanpa tanda. Alasannya `sapaan` bukan nama: isinya campuran identitas asli ("Gae") dan kalimat sindiran SBS ("Si kumis kumal yang berpura-pura paling muda"), dan mengindeks seluruh kalimat itu membuat setiap kata di dalamnya jadi kata kunci — `q=ma` dulu delapan anggota muncul karena "**ma**najer", "**na**ma", "ku**ma**", "dra**ma**", dan "trouble**ma**ker", nol yang akibat namanya. Utuhnya ada di halaman detail. Kalau nanti ada nama panggilan yang layak dicari, itu masuk lewat daftar alias terpisah — bukan dengan mengindeks ulang `sapaan`.
+
+### Keadaan ketikan di panel
+
+Tiga keadaan menyangkut ketikan dan jalannya pencarian dirender di `SearchOverlay.vue`, bukan di halaman:
+
+| Keadaan | Prop | Teks |
+|---|---|---|
+| kueri kependekan | `kueriPendek` | `cari.terlalu_pendek` |
+| sedang mencari | `kueriMencari` | `cari.memuat` |
+| selesai, nol hasil | `kueriKosong` | `cari.tak_ada` + `cari.saran` + dua tautan |
+
+Letaknya **di atas kotak panel** — bukan di dalam `.cari__panel`, karena kalau di dalam sana yang satu menutupi yang lain. Panel dan pesannya dibungkus `.cari__tumpuk`, dan **pesan itu `position: absolute`** dengan `bottom: 100%`: tinggi tumpukan cuma tinggi panel, jadi pesan muncul dan hilang tanpa menambah apa pun dan kotak search tidak pernah bergeser. Kalau pesannya dibiarkan mengalir, panel ikut naik-turun mengikuti panjangnya setiap ketikan — itulah "lompat-lompat" yang paling menyebalkan justru di layar yang paling sering dipakai mengetik. Lebar pesan bukan angka sendiri: ia mewarisi `.cari__tumpuk`, yang lebarnya sama dengan panel.
+
+Tiga hal yang tidak boleh dilanggar kalau blok ini digeser lagi:
+
+- **Panel menerimanya lewat prop**, bukan memanggil `useCari()` sendiri. Alasannya sama seperti popup kelompok: instance `useAsyncData` kedua untuk kueri yang sama.
+- **Ketiganya bernilai kosong selama isi input belum sama dengan `qTunda`.** Tanpa syarat itu, orang yang menambah satu huruf masih membaca jawaban kueri sebelumnya. Hitungannya di `search.vue`, dan ketiga-tiganya memakai satu computed `sesuaiInput`.
+- **Ketiganya saling menggantikan, bukan ditumpuk.** Untuk "terlalu pendek" itu penting: `useAsyncData` tetap dipanggil untuk kueri pendek, jadi `memuat` bisa menyala saat `kueriPendek` sudah menyala. Kalau urutannya dibalik, orang menambah huruf kedua dan pesannya tidak berubah selama 300 ms.
+
+Wadah yang selalu ada dengan isi yang berubah juga tidak boleh dipakai: ia menambah satu jarak `gap` kosong di bawah panel saat tidak ada pesan.
+
+Panel menampilkan pesan ini **tanpa perlu Enter**. Bukan tambahan: `kueriBersih` → `qTunda` memakai debounce 300 ms dan pencarian jalan setiap `qTunda` berubah, jadi panel hanya menampilkan hasil yang sudah diketahui. Satu-satunya tugas Enter adalah menutup panel, dan itu tidak berubah — kalau tidak begitu, pesan di dalam panel tidak akan pernah terlihat, karena panel sudah tertutup begitu hasil muncul.
+
+Latar panel cari memakai `--tirai` 60%, sama seperti popup kelompok dan `SlotSelect`: halaman tetap terlihat redup di belakang panel, dan itu pilihan yang disengaja. `--tirai` sendiri tidak diubah di `main.css`, jadi ketiganya membaca token yang sama dan tidak ada satu angka yang mengikat mereka.
+
+Konsekuensinya harus diingat: teks halaman **tetap terbaca** di balik tirai. Dulu blok keadaan kosong ada di halaman, dan karena tirai tembus pandang, ia terlihat seolah-olah sudah jadi bagian dari panel — itu yang membuat orang mengira pesannya ada di dalam kolom input. Memindahkannya ke atas kotak panel menutup kebingungan itu dari sisi yang salah dibaca, tapi tidak membuat teks halaman berhenti terlihat.
+
+### Indeks klip
+
+`server/utils/running-man/indeks-klip.ts` membangun indeks dari `ambilKlip()`, sumber yang sama dengan halaman klip:
+
+- Batch 1.000 klip, terbaru lebih dulu. Batch pertama langsung bisa dicari; sisanya 2–3 sekaligus, diparse berurutan, dengan jeda `setImmediate` supaya permintaan lain tidak tertahan.
+- Hasilnya disimpan ke `.data/indeks-klip.json` (sudah di `.gitignore`) secara atomik. Restart membaca file, bukan SBS. Gagal menulis dicatat sekali dan indeks tetap jalan di memori.
+- Refresh 6 jam hanya mengambil 100 klip terbaru dan berhenti di id yang sudah dikenal. Sapu penuh sebulan sekali membuang klip yang dihapus SBS, dibangun di samping indeks lama lalu ditukar.
+- `clips.get.ts` memanggil `catatKlip()`. Ini yang membuat beranda dan daftar klip menyumbang bagian terbaru indeks, bukan mengambil data yang sama dua kali.
+- Kueri angka yang tidak menemukan klip memicu satu refresh ringan, dibatasi sekali per menit.
+- Semua state indeks hidup di proses. Asumsinya satu instance server, sama seperti cache episode. Multi-instance berarti storage bersama, bukan mengubah fitur pencariannya.
+
+Pencarian **tidak** menyentuh SBS per ketikan; endpoint hanya membaca memori. Jangan menambahkan `$fetch` klip di `useCari` untuk "mempercepat" — itu justru mengembalikan masalah yang dihindari.
+
+### Keadaan
+
+`tentukanKeadaan()` di `shared/utils/cari.ts` memutuskan fase tampilan. Template tidak boleh menyusun beberapa `v-if` yang saling bertentangan. Aturan yang dijaga: hasil selalu menang atas spanduk; “tidak ada hasil” hanya final kalau indeks `lengkap`; kegagalan klip atau episode tidak menjatuhkan hasil halaman dan cast.
+
+### Performa
+
+Indeks menyimpan bidang yang sudah dinormalisasi; jangan menormalkan ulang di setiap kueri. Hasil diurutkan dengan `bandingKandidat` lalu dipotong `offset`/`limit`. Urutan yang sama dipakai server dan browser supaya halaman kedua tidak menduplikasi atau melewatkan hasil — jangan menggantinya dengan top-K selama pagination membutuhkan seluruh urutan. Sorotan dihitung sekali saat hasil dibentuk. Inverted index, SQLite/FTS5, dan worker thread **belum** dipakai — 8.800 entri masih cukup dipindai dan diurutkan di memori; ukur dulu sebelum menambah salah satunya.
+
+Aturan ini diuji tanpa Nuxt: `npm test` menjalankan `test/cari.test.ts` dengan `node --test`.
 
 ## Sistem warna
 
