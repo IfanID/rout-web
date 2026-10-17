@@ -216,27 +216,35 @@ onUnmounted(tutup)
      bukan terhadap halaman. */
   position: relative;
 
-  /* `display: flex` WAJIB, dan ini yang memperbaiki lonceng yang terlihat
-     meleset ke atas.
+  /* Satu angka untuk TIGA tempat, dan itu alasannya jadi token:
 
-     Tanpa itu, elemen ini `display: block` dan anaknya `<button>` ber-
-     `display: inline-flex` — yaitu inline-level. Block container yang punya
-     anak inline-level membentuk LINE BOX, dan line box menyelaraskan
-     baseline, bukan memusatkan. Baseline-nya adalah tepi bawah, sebab
-     satu-satunya isinya ikon tanpa teks:
+       1. `padding` horizontal `.lonceng__tombol` — menjauhkan ikon dari
+          tepi kotaknya, dan yang membuat tinggi tombol 24px bukan 18px,
+       2. `margin-right` di bawah — meniadakan padding itu, supaya yang
+          berhenti di `--sisi-header` dari tembok adalah IKON lonceng,
+          bukan kotak tombolnya,
+       3. rumus `right` di `.lonceng__panel` — menghitungnya, supaya tepi
+          popup tidak mentok ke layar.
 
-       strut teks   line-height 1.6          ascent 18.3px  descent  7.3px
-       tombol       24px, baseline di bawah   ascent 24px    descent  0px
-       ----------------------------------------------------------------
-       line box                                  31.3px
+     Yang kedua dipakai karena tanpa itu jaraknya tidak simetris: ikon
+     lonceng berhenti 7px lebih dekat ke tepi daripada ikon Rout di sisi
+     sebaliknya. Ukuran kedua ikon sudah sama dan pusatnya sudah sama —
+     yang berbeda cuma kotaknya. Padding itu sendiri tidak dihapus, karena
+     ia yang memberi tinggi pada tombolnya; dipindah keluar kotak lewat
+     margin negatif, hasilnya sama untuk mata dan tetap besar untuk jari.
 
-     Tombolnya menempati 24px teratas, dengan 7.3px kosong di bawah —
-     dan kotak lonceng ikut jadi 31.3px, LEBIH TINGGI dari logo yang
-     25.6px. Header ikut meninggi, dan itulah yang terlihat di layar.
+     Dulu angka ini ditulis dua kali sebagai `0.4375rem` dan tempat ketiga
+     tidak ada sama sekali. Begitu kotak lonceng dilebarkan, panelnya
+     tertinggal: popup-nya berhenti 1px dari tepi layar alih-alih 8px.
+     Sebagai token, tidak ada tempat yang bisa tertinggal lagi. */
+  --pad-tepi: 0.4375rem;
 
-     Sebagai flex container, tidak ada line box sama sekali: tombol jadi
-     flex item, tinggi elemen ini tepat tinggi tombol, dan pemusatan
-     diserahkan ke `align-items` — bukan ke baseline. */
+  margin-right: calc(-1 * var(--pad-tepi));
+
+  /* `display: flex` WAJIB. Dengan `display: block` dan anak inline-level,
+     terbentuk line box yang menyelaraskan baseline — tombolnya menempel di
+     atas dengan ruang kosong di bawah, dan kotaknya jadi lebih tinggi dari
+     logo. Sebagai flex container tidak ada line box sama sekali. */
   display: flex;
   align-items: center;
 
@@ -245,14 +253,11 @@ onUnmounted(tutup)
      bersama-sama — ikon lonceng ikut gepeng. */
   flex-shrink: 0;
 
-  /* `stretch`, bukan `center`.
-   
-     Dipakai untuk soal yang satu: `top: 100%` di panel di bawah harus
-     berarti tinggi SELURUH baris header, bukan hanya tinggi tombol. Dengan
-     `center`, `.lonceng` hanya setinggi tombol (24px) dan duduk 0.8px di
-     bawah puncak baris — jadi 100%-nya kurang, dan popup-nya tampil kurang
-     tinggi dari jarak yang diminta.
-   
+  /* `stretch`, bukan `center`. Dipakai untuk satu hal: `top: 100%` di panel
+     di bawah harus berarti tinggi SELURUH baris header, bukan hanya tinggi
+     tombol. Dengan `center`, `.lonceng` cuma setinggi tombol (24px) dan
+     duduk 0.8px di bawah puncak baris — jadi 100%-nya kurang.
+
      Tingginya sendiri tidak berubah: tombol tetap dipusatkan di dalamnya
      oleh `align-items: center` di atas. */
   align-self: stretch;
@@ -270,29 +275,31 @@ onUnmounted(tutup)
 
   display: inline-flex;
   align-items: center;
-  justify-content: center;
 
-  /* TINGGI TIDAK DITETAPKAN. Tombol ini boleh sebesar apa saja yang
-     muat, dan tinggi header tidak bergerak sama sekali — itu bukan
-     harapan, tapi hasil hitungan:
+  /* Ikon menempel tepi KANAN kotaknya, bukan di tengah.
 
-       ikon   1.125rem            = 18px   (@nuxt/icon width/height: 1em,
-                                         jadi tidak ikut line-height)
-       padding atas + bawah       =  6px
-       ------------------------------------------
-       lonceng                    = 24px
+     Kotaknya selebar `--lebar-zona` (lihat Header.vue), sama dengan kotak
+     logo di sisi sebaliknya. Kalau ikonnya di tengah, ia jatuh ±19px dari
+     tepi kanan kotak — dan jaraknya ke tembok jadi tidak sama dengan jarak
+     ikon Rout ke tembok di sisi kiri. `flex-end` yang menjaganya.
 
-     sementara `.header__logo`      25.6px  (1rem x line-height 1.6)
+     `--lebar-zona` punya cadangan `auto` supaya komponen ini tetap waras
+     kalau dipakai di luar header: tanpa token itu, lebarnya kembali
+     mengikuti isinya. */
+  width: var(--lebar-zona, auto);
+  justify-content: flex-end;
 
-     24 < 25.6, jadi yang menentukan tinggi header tetap logo. Angkanya
-     tidak perlu diulang di CSS: begitu `line-height` di body berubah, tinggi
-     logo ikut berubah, dan tombol ini ikut karena tinggiannya dari isinya.
+  /* TINGGI TIDAK DITETAPKAN, dan lebarnya tidak lagi dari isi.
 
-     Padding horizontalnya jauh lebih longgar supaya target sentuhnya
-     selebar mungkin dalam tinggi yang tersedia: 18px ikon + 2 x 7px =
-     32px. Tinggi memang mentok di sini — header hanya setinggi itu, dan
-     logo di sebelah kiri sudah punya batas yang sama. */
-  padding: 0.1875rem 0.4375rem;
+     Tingginya tetap dari padding: ikon 18px + 3px atas + 3px bawah = 24px.
+     Itu di bawah tinggi logo (25.6px), jadi yang menentukan tinggi header
+     tetap logo dan header tidak pernah meninggi karena lonceng ini.
+
+     Padding horizontalnya tidak dihapus: 7px di kanan itulah yang membuat
+     ikon berhenti 7px di dalam kotaknya, dan `margin-right` negatif di
+     `.lonceng` yang meniadakannya supaya yang berhenti di `--sisi-header`
+     dari tembok adalah IKON, bukan kotaknya. */
+  padding: 0.1875rem var(--pad-tepi);
 
   /* Tanpa latar dan tanpa garis, karena yang di sebelahnya logo teks —
      permukaan di sini akan terasa seperti tombol yang lebih penting dari
@@ -303,10 +310,6 @@ onUnmounted(tutup)
 
   color: var(--teks-sekunder);
   cursor: pointer;
-
-  /* Wajib di flex yang sama dengan teks berjala. Tanpa ini lonceng ikut
-     menyusut bersama `header__kanan`, dan ikonnya ikut gepeng. */
-  flex-shrink: 0;
 
   transition: background var(--transisi), color var(--transisi);
 }
@@ -385,22 +388,34 @@ onUnmounted(tutup)
      tebal garisnya berubah — bukan melayang atau tenggelam. */
   top: calc(100% + var(--jarak-panel) + var(--bawah-header, 0px));
 
-  /* Jarak KANAN. Berbeda dengan yang atas: di sini tidak ada yang
-     menghalangi antara tepi `.lonceng` dan tepi layar selain padding
-     header itu sendiri. Jadi untuk berhenti `jarak-panel` di dalam tepi
-     layar, panel harus maju sebesar `sisi-header - jarak-panel` ke kanan —
-     dan karena `right` positif menggeser ke kiri, yang ditulis dibalik:
+  /* Jarak KANAN. Dihitung dari tepi layar, bukan dari tepi `.lonceng`.
 
-         right = jarak-panel - sisi-header
+     Ada TIGA ruang antara tepi kanan `.lonceng` dan tepi layar, dan
+     ketiganya harus dihitung atau panelnya mentok:
 
-     Di HP: 0.5rem - 1rem   = -0.5rem -> 8px dari tepi layar.
-     Di lebar: 0.5rem - 1.5rem = -1rem   -> 16px di kanan kolom konten,
-     masih menempel dekat loncengnya.
+       --pad-tepi      `margin-right` negatif di `.lonceng` MENARIK kotaknya
+                       ke kanan sejauh ini, jadi tepinya lebih dekat ke layar
+       --sisi-header   padding header, satu-satunya yang menjauhkan
+       --jarak-panel   jarak yang diinginkan
 
-     `0rem` sebagai cadangan supaya komponen ini tetap bisa dipakai di luar
+     Jadi pergeserannya dari tepi `.lonceng`:
+
+         right = jarak-panel + pad-tepi - sisi-header
+
+     Di HP:   0.5rem + 0.4375rem - 1rem    = -0.0625rem -> 8px dari layar.
+     Di lebar: 0.5rem + 0.4375rem - 1.5rem  = -0.5625rem -> 16px di kanan
+     kolom konten, masih menempel dekat loncengnya.
+
+     Suku `pad-tepi` itu yang dulu terlupa: ketika kotak lonceng dilebarkan
+     dan kompensasinya ditambahkan, rumus ini tidak ikut berubah — dan
+     popup-nya berhenti 1px dari tepi layar alih-alih 8px.
+
+     `0rem` sebagai cadangan supaya komponen ini tetap waras di luar
      header: tanpa custom property itu, `calc()`-nya jadi tidak valid dan
      `right` kembali ke `auto`. */
-  right: calc(var(--jarak-panel) - var(--sisi-header, 0rem));
+  right: calc(
+    var(--jarak-panel) + var(--pad-tepi, 0rem) - var(--sisi-header, 0rem)
+  );
 
   /* `width` tetap, bukan `min-width`: isi barisnya bisa panjang sekali,
      dan panel yang ikut melebar keluar dari layar di layar sempit. */

@@ -26,13 +26,12 @@
            seluruh situs, bukan satu halaman, dan tempat yang selalu ada di
            setiap halaman cuma header ini.
 
-           Diletakkan SETELAH teks berjala, lalu didorong ke kanan dengan
-           `margin-left: auto` (lihat `.header__lonceng`). Teks itu memang
-           mengisi ruang yang tersisa — `header__kanan` sudah `min-width: 0`
-           plus `overflow: hidden`, jadi ruang kosong boleh menyusut.
-           Kalau urutannya dibalik, teksnya yang menyempit dan loncengnya
-           yang bergeser. -->
-      <NotificationAktivitasBell class="header__lonceng" />
+           Diletakkan SETELAH teks berjala, tanpa dorongan apa pun: ruang
+           sisa diserap teks itu sendiri lewat `flex: 1`. Kalau urutannya
+           dibalik, atau kalau teksnya dikembalikan ke `margin-left: auto`,
+           jarak logo ke lonceng jadi sebesar sisa layar dan keduanya terlihat
+           berjauhan padahal hanya satu baris. -->
+      <NotificationAktivitasBell />
     </div>
   </header>
 </template>
@@ -92,16 +91,33 @@ onMounted(() => {
   top: 0;
   z-index: 40;
 
-  /* Tiga angka di bawah ini bukan gaya, melainkan KONTRAK dengan panel
-     lonceng di AktivitasBell.vue. Alasannya ada di sana; intinya begini:
-     panel itu absolut terhadap `.lonceng`, sehingga jaraknya ke tepi bawah
-     header tidak bisa hanya `jarak-panel` — di antara keduanya masih ada
-     sisa ruang baris, padding bawah header, dan garis bawahnya.
+  /* `--sisi-header`, `--pad-header`, dan `--batas-header` bukan gaya,
+     melainkan KONTRAK dengan panel lonceng di AktivitasBell.vue. Alasannya
+     ada di sana; intinya: panel itu absolut terhadap `.lonceng`, sehingga
+     jaraknya ke tepi bawah header tidak bisa hanya `jarak-panel` — di
+     antaranya masih ada sisa ruang baris, padding bawah header, dan garis
+     bawahnya. `--sisi-header` juga yang memisahkan tepi layar dari tepi
+     kolom konten.
 
-     `--bawah-header` karena itu turunan dari dua angka lain, bukan angka
-     ketiga berdiri sendiri: begitu padding atau garisnya berubah,
-     turunannya ikut dan popup tetap menempel. */
+     `--bawah-header` turunan dari dua angka lain, bukan angka ketiga
+     berdiri sendiri: begitu padding atau garisnya berubah, turunannya ikut
+     dan popup tetap menempel. */
   --sisi-header: 1.5rem;
+
+  /* Lebar zona tepi kiri dan kanan. Dipakai DUA-duanya — kotak logo dan
+     kotak lonceng — supaya keduanya sama lebar oleh konstruksi, bukan oleh
+     perkiraan lebar huruf "Rout".
+
+     Konsekuensinya seluruh header jadi simetris: dua zona tepi sama lebar
+     dengan jarak yang sama, sehingga kotak teks berjalan di tengahnya
+     otomatis terpusat. Tidak perlu `margin: auto` untuk itu.
+
+     3.5rem dan bukan angka yang lebih ketat: lebar teks "Rout" bergantung
+     pada font sistem perangkat, dan token yang terlalu pas akan memotong
+     teks di satu perangkat tapi tidak di perangkat lain. Karena keduanya
+     membaca token ini, kesamaannya tidak bergantung pada tebal-tipisnya
+     huruf. */
+  --lebar-zona: 3.5rem;
   --pad-header: 0.1875rem;
   --batas-header: 1px;
   --bawah-header: calc(var(--pad-header) + var(--batas-header));
@@ -125,7 +141,19 @@ onMounted(() => {
 .header__isi {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+
+  /* Jarak dalam baris, SAMA dengan jarak tepi (`--sisi-header`) supaya
+   * keempat jarak di header sama: kiri ke logo, logo ke marquee, marquee
+   * ke lonceng, dan lonceng ke kanan.
+   *
+   * Dulu jaraknya `1.25rem` — 4px lebih besar dari padding tepi, jadi
+   * membandingkan jarak dalam dan jarak tepi selalu menghasilkan selisih
+   * yang kecil tapi kelihatan. Sekarang keduanya membaca token yang sama,
+   * jadi tidak bisa berbeda kecuali tokennya memang diubah.
+   *
+   * Ruang yang lebih dari empat jarak itu diserap `.header__kanan`, bukan
+   * lonceng — lihat `flex: 1` di sana. */
+  gap: var(--sisi-header);
 
   max-width: var(--lebar-konten);
   margin-inline: auto;
@@ -143,6 +171,12 @@ onMounted(() => {
   letter-spacing: -0.01em;
   color: var(--teks-utama);
   transition: color var(--transisi);
+
+  /* Sama lebar dengan zona kanan. `nowrap` supaya teks tidak pernah
+     turun baris kalau fontnya lebih lebar dari dugaan — lebih baik
+     terpotong di dalam kotaknya daripada merusak tinggi header. */
+  width: var(--lebar-zona);
+  white-space: nowrap;
 }
 
 .header__logo:hover {
@@ -154,10 +188,23 @@ onMounted(() => {
   color: var(--aksen-indikator);
 }
 
-/* Wadah teks: satu baris, dipotong, tidak mendorong logo.
-   Sengaja tanpa flex: 1 supaya teks menempel di sebelah logo dengan
-   jarak yang sama, bukan terdorong ke tepi kanan. */
+/* Teks berjala yang mengisi ruang sisa.
+ *
+ * `flex: 1` membuatnya melebar sampai ke lonceng, jadi jarak antara
+ * marquee dan lonceng ikut ditentukan oleh `gap` yang sama seperti jarak
+ * lainnya — bukan oleh `margin-left: auto` di lonceng yang dulu mendorongnya
+ * ke tepi kanan dan membuat jaraknya sebesar sisa layar.
+ *
+ * Dulu lonceng-lah yang menyerap sisanya, dan itulah yang membuat logo di
+ * kiri dan lonceng di kanan terasa berjauhan padahal keduanya hanya
+ * dibatasi satu baris.
+ *
+ * `min-width: 0` tetap wajib supaya boleh menyusut sampai nol, dan
+ * `overflow: hidden` yang memotong teksnya kalau tidak cukup ruang. Tanpa
+ * keduanya teks berjalanya akan mendorong lonceng keluar baris. */
 .header__kanan {
+  flex: 1;
+
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -187,10 +234,6 @@ onMounted(() => {
  * tidak jadi satu-satunya yang meleset ke luar kolom pada layar lebar.
  * Teks jalannya justru yang dipotong di layar sempit, dan itu memang
  * tugasnya: ia ornament, bukan informasi. */
-.header__lonceng {
-  margin-left: auto;
-}
-
 /* Padding di dalam tiap potongannya, bukan di antaranya. Dengan begitu
    geser -50% tepat sama dengan lebar satu potongan, jadi tidak ada
    celah atau lompatan saat berulang. */
