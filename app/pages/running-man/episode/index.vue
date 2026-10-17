@@ -472,6 +472,13 @@ function hapusLabelEpisode() {
       Belum ada episode yang bisa dimuat. Coba lagi nanti.
     </p>
 
+    <!-- Daftar episode bisa ratusan baris dan dimuat bertahap, jadi orang
+         yang sudah jauh di bawah butuh jalan singkat kembali ke atasnya.
+         Tombolnya diletakkan sebelum sheet, bukan sesudahnya: sheet punya
+         `position: fixed` dan menutup layar penuh, jadi di dalam sheet
+         tombol melayang tidak akan pernah terlihat. -->
+    <BackToTop />
+
     <!-- ===== Pemilih label =====================================
 
          Sheet dari bawah, karena di layar sentuh yang menempel di

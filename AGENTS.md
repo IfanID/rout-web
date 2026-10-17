@@ -257,6 +257,7 @@ rout-web/
 │   │   ├── notification/
 │   │   │   └── Toaster.vue
 │   │   ├── AiringCountdown.vue Hitung mundur ke jam tayang episode berikutnya
+│   │   ├── BackToTop.vue       Tombol kembali ke atas, untuk daftar panjang
 │   │   ├── ClipPlayer.vue      Pemutar klip di halaman satu klip
 │   │   ├── LivePlayer.vue      Pemutar live YouTube, mulai sendiri tanpa suara
 │   │   ├── PreviewList.vue     Daftar klip, dipakai beranda + /preview

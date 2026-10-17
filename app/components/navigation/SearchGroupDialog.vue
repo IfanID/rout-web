@@ -32,6 +32,12 @@ const { kelompokTerbuka, tutupKelompok } = useSearchOverlay()
 const layar = ref<HTMLDialogElement | null>(null)
 const terbuka = computed(() => Boolean(kelompokTerbuka.value))
 
+/* Elemen yang isinya bergulir. Tombol kembali ke atas perlu tahu mana yang
+ * bergulir — bukan halamannya. `.grup__isi` punya `overflow-y: auto`
+ * sendiri, jadi yang bergerak di dalam dialog itu adalah elemen itu, dan
+ * `window` sama sekali tidak bergulir. */
+const isi = ref<HTMLElement | null>(null)
+
 /* Sinkronisasi state dan elemen <dialog>, sama seperti
  * SearchOverlay.vue: `showModal()` melempar galat kalau dialognya sudah
  * terbuka, dan `close()` melempar kalau belum. */
@@ -92,7 +98,7 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <div class="grup__isi">
+      <div ref="isi" class="grup__isi">
         <p v-if="!daftar.length && memuat" class="grup__catatan">
           {{ t('cari.memuat') }}
         </p>
@@ -134,6 +140,11 @@ onUnmounted(() => {
         >
           {{ t('cari.selesai') }}
         </p>
+
+        <!-- Yang digulir di dalam popup adalah `.grup__isi`, bukan halaman,
+             jadi wadahnya diberikan. Tanpa itu tombolnya akan mengukur
+             `window` yang tidak bergerak — dan tidak akan pernah muncul. -->
+        <BackToTop :wadah="isi" />
       </div>
     </div>
   </dialog>

@@ -110,6 +110,11 @@ const urutan = urutanKlip(useRoute().query.urutan)
       <template v-if="sedang">Memuat klip berikutnya…</template>
       <template v-else-if="habis">Akhir daftar.</template>
     </p>
+
+    <!-- Daftar ini bisa ratusan baris dan dimuat bertahap, jadi orang yang
+         sudah jauh di bawah harus punya jalan singkat kembali ke atasnya
+         tanpa menggulir seluruh halaman. -->
+    <BackToTop />
   </main>
 </template>
 
