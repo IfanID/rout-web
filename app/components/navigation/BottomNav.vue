@@ -23,10 +23,16 @@ const Tautan = resolveComponent('NuxtLink')
 const tanpaSlash = (p: string) => p.replace(/\/$/, '')
 
 /* Path halaman beranda untuk locale yang sedang aktif.
-
-   `/id`, `/en`, atau `/ko`. Dipakai oleh `milik` di bawah untuk
-   menghentikan pewarisan tetesan di titik yang salah. */
-const beranda = localePath('index')
+ *
+ * `/id`, `/en`, atau `/ko`. Dipakai oleh `milik` di bawah untuk
+ * menghentikan pewarisan tetesan di titik yang salah.
+ *
+ * Harus `computed`, bukan nilai yang diambil sekali. Penjaga di
+ * `milik` membandingkan hasil `localePath` yang SEGAR dengan ini;
+ * kalau ini disetup sekali, penjaga gagal begitu bahasa diganti dan
+ * `/ko/settings` ikut cocok dengan prefix `/ko/` — tetesan lalu
+ * jatuh ke item pertama, Beranda. */
+const beranda = computed(() => localePath('index'))
 
 /* Apakah path yang sedang dibuka termasuk bagian dari sebuah item
  * navbar: berandanya sendiri, halaman anaknya, atau salah satu
@@ -79,7 +85,7 @@ function milik(path: string, target: string, halamanLain: readonly string[]) {
   const ke = tanpaSlash(target)
 
   if (dari === ke) return true
-  if (ke === beranda) return false
+  if (ke === beranda.value) return false
 
   /* Yang terakhir ini yang menyalakan Running Man di
      `/running-man/detail` dan `/running-man/episode/streaming`. */
@@ -149,10 +155,25 @@ const item = computed(() => {
    bergantung pada cara modul i18n menamai route per locale.
 
    Hasilnya -1 kalau halaman ini memang tidak punya item navbar.
-   Tetesan lalu diam di posisi dasar tanpa membesar. */
-const aktif = computed(() =>
-  item.value.findIndex(s => (s.ke ? milik(route.path, localePath(s.ke), s.dalam) : false))
-)
+   Tetesan lalu diam di posisi dasar tanpa membesar.
+
+   Indeks TERKUNCI pada nilai terakhir yang valid. Path dan
+   `localePath` tidak berganti dalam satu langkah saat bahasa
+   diganti — path sempat baru sementara `localePath` masih lama —
+   dan saat itu tidak ada item yang cocok, jadi hasilnya -1.
+   Indikator tidak punya aturan untuk -1, jadi ia jatuh ke posisi
+   bawaan (item pertama, Beranda) lalu tertarik kembali. Itu
+   getarannya. Terkunci, tetesan tidak bergerak sama sekali saat
+   bahasa diganti. Proyek ini tidak punya halaman yang sah tanpa
+   item navbar, jadi -1 memang hanya pernah terjadi sesaat. */
+const aktif = ref(-1)
+
+watchEffect(() => {
+  const cari = item.value.findIndex(s =>
+    s.ke ? milik(route.path, localePath(s.ke), s.dalam) : false
+  )
+  if (cari >= 0) aktif.value = cari
+})
 
 /* Animasi tetesan baru dinyalakan setelah frame pertama selesai.
 

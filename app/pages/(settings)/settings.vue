@@ -4,7 +4,15 @@ const { t } = useI18n()
 
 <template>
   <main class="konten pengaturan">
-    <h1 class="konten__judul">{{ t('pengaturan.judul') }}</h1>
+    <div class="pengaturan__kepala">
+      <h1 class="konten__judul">{{ t('pengaturan.judul') }}</h1>
+
+      <!-- Pemilih bahasa ada di pojok kanan baris judul, bukan
+           sebagai kontrol tersendiri di bawahnya: yang diatur di
+           halaman ini cuma dua hal, dan keduanya adalah "pilihan
+           yang menempel di tampilan". -->
+      <NavigationLocaleSwitcher />
+    </div>
 
     <p class="pengaturan__label">{{ t('pengaturan.slot') }}</p>
 
@@ -19,6 +27,20 @@ const { t } = useI18n()
    untuk masalah yang sama. */
 .pengaturan {
   padding-bottom: 10rem;
+}
+
+/* Judul di kiri, pemilih bahasa di pojok kanan.
+
+   `align-items: center` supaya tombolnya duduk setinggi judul,
+   bukan menggantung di atasnya. Tidak ada `flex-wrap`: di lebar
+   paling sempit yang dipakai proyek ini (390px) satu baris sudah
+   cukup untuk "Pengaturan" di 1.875rem ditambah tombol sekecil
+   itu. */
+.pengaturan__kepala {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 /* Ukuran dan warna mengikuti .bagian__judul di main.css, supaya
