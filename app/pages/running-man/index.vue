@@ -98,7 +98,9 @@ definePageMeta({
 
 const localePath = useLocalePath()
 
-const { locale } = useI18n()
+/* `t` dipakai untuk judul bagian klip. `locale` sendiri bukan untuk
+ * terjemahan, tapi untuk `Intl.DateTimeFormat` di bawah. */
+const { t, locale } = useI18n()
 
 /* Jadwal tayang episode berikutnya — nomor dan tanggalnya.
  *
@@ -456,27 +458,27 @@ const jalan = [
          dan menampilkan judul dengan isi kosong di bawahnya terlihat
          seperti ada isinya yang belum termuat. -->
     <section v-if="klipTampil.length" class="bagian">
-      <h2 class="bagian__judul">예고보기</h2>
+      <h2 class="bagian__judul">{{ t('klip.judul') }}</h2>
 
-      <PreviewSort />
+      <!-- Tab urutannya dan tombol "lihat semua" sebaris: keduanya
+           kendali untuk daftar yang sama, jadi meletakkannya jadi satu
+           baris membuat hubungannya terbaca tanpa perlu dibaca. -->
+      <div class="pratinjau__alat">
+        <PreviewSort />
+
+        <NuxtLink
+          :to="localePath({ name: 'running-man-preview', query: { urutan } })"
+          class="tombol lebih"
+        >
+          Lihat semua
+        </NuxtLink>
+      </div>
 
       <!-- Bentuk `gulir`: kotaknya setinggi tiga kartu, sisanya digulir
            di dalamnya. Lihat catatan `bentuk` di PreviewList.vue untuk
            kenapa tingginya dibatasi dan kenapa kartu berikutnya
            sengaja mengintip sedikit. -->
       <PreviewList :daftar="klipTampil" bentuk="gulir" />
-
-      <!-- Satu-satunya perintah di bagian ini, dan sengaja di bawah
-           kotak klipnya. Orang yang sudah melihat tiga baris pertama
-           dan ingin sisanya baru menekan ini — dan saat menekannya, dia
-           sudah tahu isinya akan seperti apa. -->
-      <NuxtLink
-        :to="localePath({ name: 'running-man-preview', query: { urutan } })"
-        class="tombol tombol--sekunder lebih"
-      >
-        Lihat lebih banyak
-        <Icon name="lucide:arrow-right" class="tayang__ikon" aria-hidden="true" />
-      </NuxtLink>
     </section>
 
     <!-- ===== Live YouTube ======================================== -->
@@ -865,17 +867,51 @@ const jalan = [
 
 /* --- Pratinjau ------------------------------------------------ */
 
-/* Tombol "lihat lebih banyak".
+/* Baris tempat tab urutan dan tombol "lihat semua" berdiri bersama.
  *
- * Selebar bagiannya, bukan selebar tulisannya. Ia menutup daftar di
- * atasnya, dan tombol yang lebih sempit dari daftar itu terbaca
- * sebagai tambahan pada satu baris, bukan sebagai akhir dari
- * daftarnya. */
-.lebih {
-  width: 100%;
-  justify-content: center;
+ * `flex-wrap` bukan opsional. Di 390px keduanya memang tidak muat: tabnya
+ * 258px, tombolnya 102px, dan ruang yang tersisa di dalam `.konten` cuma
+ * 358px. Tanpa wrap, "sebaris" berakhir jadi tombol yang meluber keluar
+ * kotak konten — bukan tombol yang pindah tempat.
+ *
+ * `margin-left: auto` di `.lebih` yang menempelkannya ke kanan, dan
+ * tetap bekerja di dua keadaan: sebaris kalau ruang cukup, atau sendirian
+ * di baris bawah kalau tidak. */
+.pratinjau__alat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
 
-  margin-top: 1rem;
+/* Tab urutannya bawa `margin-top: 0.75rem` miliknya sendiri dari
+ * `PreviewSort.vue`. Di dalam baris flex itu pilnya turun dan tombolnya
+ * terlihat lebih tinggi, jadi maraknya dinetralkan di sini. */
+.pratinjau__alat > .urutan {
+  margin-top: 0;
+}
+
+/* Tombol "lihat semua".
+ *
+ * Bentuknya sengaja sama persis dengan pil tab di `.urutan__butir` —
+ * latar, border, radius, padding, ukuran huruf. Alasannya ukurannya harus
+ * sama: kalau lebih besar, barisnya jadi tidak rata, dan kalau hanya
+ * warnanya yang beda, tombolnya terbaca sebagai tab urutan keempat.
+ *
+ * Karena itu nilainya DISALIN dari `.urutan__butir`, bukan diwarisi.
+ * Kalau salah satu berubah, yang lain wajib ikut — dua salinan tidak
+ * boleh diam-diam berbeda. */
+.lebih {
+  margin-left: auto;
+
+  background: var(--latar-naik-2);
+  border: 1px solid var(--garis-halus);
+  border-radius: 999px;
+  padding: 0.375rem 0.875rem;
+
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--teks-lembut);
 
   /* Daftar transisinya ditulis lengkap, bukan `transform` saja.
      `.tombol` di main.css sudah punya daftar sendiri, dan menimpanya
@@ -886,6 +922,11 @@ const jalan = [
     border-color var(--transisi),
     color var(--transisi),
     transform var(--transisi);
+}
+
+.lebih:hover {
+  background: var(--latar-sorot);
+  color: var(--teks-utama);
 }
 
 /* Umpan balik saat ditekan.

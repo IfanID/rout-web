@@ -840,7 +840,7 @@ Pemilihan `prefix` disengaja: bahasa default bisa diubah kapan saja tanpa merusa
 
 Konvensi yang berlaku:
 
-- Pesan terjemahan disimpan di `app/i18n/locales/<code>.json`. Blok yang ada sekarang: `hero`, `cari`, `nav`, `pengaturan`, `slot`, dan `anggota`.
+- Pesan terjemahan disimpan di `app/i18n/locales/<code>.json`. Blok yang ada sekarang: `hero`, `cari`, `pengaturan`, `slot`, `nav`, `anggota`, `statistik`, `episode_baru`, `aktivitas`, dan `klip`.
 - Struktur kunci harus sama persis di semua file locale.
 - Jangan menaruh kunci yang belum dipakai. Kalau sebuah komponen dihapus, kunci yang hanya dipakai komponen itu ikut dihapus dari ketiga file locale.
 - Nilai yang bukan brand diterjemahkan. "Running Man" adalah nama acara dari Korea Selatan, bukan brand Rout, dan ditulis sama persis di `id`, `en`, dan `ko` karena itu nama resminya. Keterangannya di `slot.running_man` tetap diterjemahkan, karena penjelasan bukan nama. Kunci boleh Bahasa Indonesia, tapi nama folder dan file `.vue` tidak — aturan lengkapnya ada di [Penamaan](#penamaan).

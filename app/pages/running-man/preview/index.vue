@@ -21,13 +21,27 @@
  * tetap `running-man-preview`.
  *
  * Teksnya ditulis apa adanya di template, dalam Bahasa Indonesia,
- * sesuai aturan teks dummy di AGENTS.md. Judul "예고보기" tetap dalam
- * Bahasa Korea karena itu istilah yang dipakai acaranya sendiri, sama
- * seperti "Running Man" — bukan kata yang kita terjemahkan. */
+ * sesuai aturan teks dummy di AGENTS.md — kecuali judul bagiannya.
+ *
+ * "예고보기" DITERJEMAHKAN lewat `t('klip.judul')`. Dulu ia ditulis apa
+ * adanya dengan alasan bahwa itu istilah acaranya sendiri, sama seperti
+ * "Running Man". Alasannya itu keliru: "Running Man" memang nama acara,
+ * sedangkan "예고보기" cuma kata Korea biasa yang artinya "pratinjau".
+ * Aturan di AGENTS.md sudah begitu sejak awal — nilai yang bukan brand
+ * diterjemahkan — jadi ia menyimpang dari aturan itu, bukan aturan
+ * tersendiri.
+ *
+ * Bedanya dengan teks dummy lain di halaman ini: yang ini bukan teks
+ * sementara. Isinya sudah final dan memang perlu diterjemahkan, jadi ia
+ * tidak mengikuti aturan teks dummy. */
 
 import type { Klip } from '#shared/types/klip'
 
 const localePath = useLocalePath()
+
+/* Satu-satunya teks di halaman ini yang bukan dummy — lihat catatan
+ * panjangnya di header berkasnya. */
+const { t } = useI18n()
 
 /* Daftar yang tampil di halaman ini, terpisah dari yang ada di cache
  * `useAsyncData`. Hasil satu pemuatan tidak boleh diubah langsung:
@@ -76,7 +90,7 @@ const urutan = urutanKlip(useRoute().query.urutan)
       Beranda Running Man
     </NuxtLink>
 
-    <h1 class="konten__judul">예고보기</h1>
+    <h1 class="konten__judul">{{ t('klip.judul') }}</h1>
 
     <p class="konten__sub">
       Semua klip yang tercatat, terbaru di atas.

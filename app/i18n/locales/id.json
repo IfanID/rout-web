@@ -328,5 +328,8 @@
     "kosong": "Belum ada aktivitas tercatat di peramban ini. Notifikasi akan muncul di sini setelah muncul di layar.",
     "jumlah": "aktivitas tercatat",
     "kosongkan": "Hapus semua riwayat"
+  },
+  "klip": {
+    "judul": "Pratinjau"
   }
 }
