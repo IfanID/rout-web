@@ -539,6 +539,26 @@ Kapan perlu membuat folder, dan kapan tidak, dijelaskan di [Organisasi folder](#
 
 `server/api/cari.get.ts` melayani pencarian arsip klip. Sumber dan aturan indeksnya ada di `server/utils/running-man/indeks-klip.ts`; pencarian tidak menanyakan SBS per permintaan.
 
+### Host yang dihubungi
+
+Daftar lengkap siapa menghubungi siapa. Alamat, bentuk respons, dan alasannya tetap di berkasnya masing-masing — yang tidak ada di tempat lain adalah daftarnya sendiri, dan siapa yang menelepon dari sisi mana.
+
+| Host | Dari mana | Peran |
+|---|---|---|
+| `static.apis.sbs.co.kr` | server, `server/utils/running-man/klip.ts` | daftar klip, dan posisi satu klip di arsip |
+| `static.apis.sbs.co.kr` | server, `server/utils/running-man/jadwal.ts` | episode penuh dari menu `vod` |
+| `api.abyss.to` | server, `server/utils/running-man/episode.ts` | daftar episode |
+| `static.apis.sbs.co.kr` | **browser**, `app/components/ClipPlayer.vue` | sumber stream klip |
+| `programs.sbs.co.kr` | browser, `app/composables/useRunningManClips.ts` | tautan ke halaman klip SBS, bukan permintaan |
+| `img2.sbs.co.kr` | browser, `app/composables/useRunningManAnggota.ts` | foto cast |
+| `www.youtube.com` | browser, `app/components/LivePlayer.vue` | tayang langsung, alamatnya dari `.env` |
+
+Tiga hal yang tidak terbaca dari salah satu berkas saja:
+
+- **`ClipPlayer.vue` satu-satunya yang meminta pihak ketiga dari browser.** Sisanya lewat server, dan itu sebabnya klip boleh memakai endpoint `preview` milik SBS yang mengizinkan CORS. Kalau nanti ada permintaan pihak ketiga kedua di `app/`, yang perlu dipertanyakan lebih dulu adalah aturan ini — bukan apakah CORS-nya mengizinkan.
+- **Satu host bisa punya beberapa peran, dan perannya tidak sama.** `static.apis.sbs.co.kr` muncul sebagai daftar (`klip.ts`), sebagai jadwal (`jadwal.ts`), dan sebagai pemutar (`ClipPlayer.vue`). Tiga berkas berbeda, tiga tempat fallback berbeda, dan tidak ada satu konstanta yang mengikat ketiganya. Abstraksi yang menggabungkan ketiganya akan menghapus batas itu.
+- **Satu host harus punya satu pemilik.** Kalau sebuah host muncul di dua berkas, salah satunya salah. Alasan dan bentuk respons ikut ke file itu, bukan ke file yang kebetulan memanggil duluan.
+
 Empat hal yang tidak bisa dibaca dari berkasnya sendiri:
 
 - **Subfolder di `server/api/` adalah bagian URL.** Ini kebalikan dari `app/components/`, yang subfoldernya cuma jadi awalan nama komponen. `api/running-man/clips.get.ts` menghasilkan `/api/running-man/clips`.
