@@ -333,9 +333,17 @@ const metaKlip = computed(() => {
 /* Player dan tombol di bawahnya berbagi satu lebar dan satu pusat,
  * supaya keduanya segaris.
  *
- * `56rem` (896px) adalah batas yang sama dipakai halaman streaming:
- * pada rasio 16:9 tingginya 504px, dan sisa halamannya masih terlihat
- * tanpa menggulir. */
+ * Batasnya sama persis dengan dua player lain di proyek ini — live di
+ * `running-man/index.vue` dan streaming di
+ * `running-man/episode/streaming.vue`. Kalau salah satunya diubah,
+ * ketiganya harus ikut, kalau tidak tinggi pemutar melompat saat
+ * orang berpindah halaman.
+ *
+ * `56rem` batas atas supaya di monitor besar tidak melar; `55vh`
+ * yang menentukan di layar pendek, karena 504px sudah memenuhi
+ * laptop 1366x768 setelah header dan judul ikut dihitung. Rasio
+ * 16/9 dipakai untuk menerjemahkan batas tinggi jadi batas lebar —
+ * `aspect-ratio` menghitung tinggi dari lebar. */
 .clip__pemutar {
   display: block;
   margin-top: 1.5rem;
@@ -344,7 +352,7 @@ const metaKlip = computed(() => {
 @media (min-width: 48rem) {
   .clip__pemutar,
   .clip__tujuan {
-    max-width: 56rem;
+    max-width: min(56rem, calc(55vh * 16 / 9));
     margin-inline: auto;
   }
 }

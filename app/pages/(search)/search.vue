@@ -512,9 +512,50 @@ onBeforeUnmount(() => {
 }
 
 /* Pil navbar melayang 1.5rem dari bawah di layar lebar, bukan
- * menempel tepi. Petunjuk harus ikut mengambang. */
+ * menempel tepi. Petunjuk harus ikut mengambang.
+ *
+ * Posisi horizontalnya juga ikut berubah, dan ini yang sebelumnya
+ * terlewat. `left: 1rem` di atas benar selama navbar menempel tepi:
+ * di HP ikon search memang berada di sebelah kiri. Tapi di layar
+ * lebar navbar berubah jadi pil 440px di TENGAH layar — lihat
+ * `@media (min-width: 48rem)` di `navigation/BottomNav.vue` — jadi
+ * ikon search ikut bergeser ke tengah, sementara kotak ini tetap
+ * di 16px dari tepi kiri.
+ *
+ * Di 1440px selisihnya sekitar 630px: kalimatnya menunjuk ikon yang
+ * ada hampir di seberang layar. Di HP jaraknya beberapa sentimeter,
+ * di laptop jadi selebar layar — dan justru di layar besar tempat
+ * orang lebih banyak membaca navbar.
+ *
+ * Dipusatkan, bukan memakai angka offset. Dua angka yang harus
+ * dijaga sinkron — 440px dan posisi ikon di dalam navbar — sudah
+ * hidup di `BottomNav.vue`, dan menyalinnya ke sini berarti dua
+ * tempat yang harus dijaga sinkron.
+ *
+ * Dipusatkan juga nyaris tepat. Ikon search ada 77px di kiri pusat
+ * navbar, sedangkan setengah lebar kotak sendiri: 144px untuk
+ * kalimat Indonesia, 120px untuk Inggris. Ikonnya jatuh di dalam
+ * lebar kotak, jadi kotak ini berada tepat di atas navbar tempat
+ * ikon itu berada.
+ *
+ * Kore-nya lebih ketat dari yang terlihat: kalimat Korea hanya
+ * 75px setengah lebarnya, jadi ikonnya keluar 2px dari sisi kotak.
+ * Jaraknya 2px, bukan jarak yang terasa jauh — kotak masih tepat
+ * di atas navbar, hanya ikonnya menyentuh tepi. Menambah offset
+ * untuk menutup 2px itu berarti mengunci angka navbar ke sini,
+ * dan itu justru yang dihindari di atas.
+ *
+ * `margin-inline: auto` dengan `left: 0; right: 0`, bukan
+ * `left: 50%` + `translateX(-50%)`. Alasannya ada di keyframes
+ * `petunjuk`: `transform` dipakai untuk gerak vertikal, jadi
+ * `translateX` di properti yang sama akan ditimpa setiap frame
+ * animasi berjalan. Auto margin tidak memakai `transform` sama
+ * sekali, dan `width: fit-content` di atas tetap berlaku. */
 @media (min-width: 48rem) {
   .cari__petunjuk {
+    left: 0;
+    right: 0;
+    margin-inline: auto;
     bottom: calc(72px + 1.5rem + 0.25rem);
   }
 }

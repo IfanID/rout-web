@@ -286,8 +286,10 @@ onMounted(() => {
    Plus tiga perbaikan dari aslinya:
 
    1. Width dibatasi supaya navbar tidak meluar di layar yang lebih
-      sempit dari 328px. Tanpa itu, margin auto tidak berlaku dan
-      isinya terdorong ke tepi kiri.
+      sempit dari lebarnya. Tanpa itu, margin auto tidak berlaku dan
+      isinya terdorong ke tepi kiri. Lebarnya 440px, dan aturan ini
+      hanya berlaku di atas 48rem — di bawah itu navbar menempel tepi
+      dan lebarnya bukan lagi angka tetap.
 
    2. Ruang dihitung dari lebar navbar itu sendiri. Versi aslinya
       memakai `100vw`, sedangkan navbar ini `position: fixed` dengan
@@ -366,13 +368,32 @@ onMounted(() => {
   z-index: 30;
 }
 
-/* Di layar lebar, navbar tidak melar dari tepi ke tepi. */
+/* Di layar lebar, navbar tidak melar dari tepi ke tepi.
+ *
+ * Lebarnya 440px, dan angkanya berasal dari label — bukan dari
+ * selera. Label terpanjang di navbar ini adalah "Running Man" pada
+ * slot tengah: 12 karakter, dan `terjemah: false` di
+ * `useMiddleSlot.ts`, jadi sama persis di `id`, `en`, dan `ko`.
+ *
+ * Di 328px yang lama, jarak antar pusat item cuma
+ * (328 - 5 x 24) / 6 + 24 = 58.7px — lebih pendek dari label 64px,
+ * jadi teksnya menabrak tetangganya. Di HP navbar menempel tepi dan
+ * lebarnya penuh, jaraknya 69px, dan masalahnya tidak pernah
+ * muncul; hanya navbar melayang di layar lebar yang sempit.
+ *
+ * Lebar minimum supaya label 64px dapat sisa 12px:
+ *   langkah = 64 + 12 = 76
+ *   lebar  = (76 - 24) x 6 + 120 = 432, dibulatkan ke 440
+ *
+ * Rumus `--ruang`, `--langkah`, dan `--mula` di atas semuanya
+ * persentase dari lebar navbar ini, jadi tetesan menyesuaikan
+ * sendiri. Angka yang diubah di sini cuma satu. */
 @media (min-width: 48rem) {
   .nav {
     bottom: 1.5rem;
     left: 50%;
     right: auto;
-    width: 328px;
+    width: 440px;
     margin: 0 auto;
     transform: translateX(-50%);
     padding-bottom: 0;

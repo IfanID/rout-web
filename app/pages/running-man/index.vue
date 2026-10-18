@@ -962,6 +962,22 @@ const jalan = [
  * rasio 16:9 menjadikannya setinggi 648px — setengah tinggi monitor
  * untuk satu video live.
  *
+ * Batasnya `min()` dengan dua bagian, dan TIGA player di proyek ini
+ * memakai rumus yang sama: yang di sini, `.streaming__layar` di
+ * `running-man/episode/streaming.vue`, dan `.clip__pemutar` di
+ * `running-man/preview/[id].vue`. Kalau salah satunya diubah,
+ * ketiganya harus ikut — kalau tidak, tinggi pemutar melompat saat
+ * orang berpindah halaman.
+ *
+ * `56rem` batas atas, supaya di monitor besar video tidak ikut melar.
+ * `55vh` yang menentukan di layar pendek: batas LEBAR saja tidak
+ * cukup, karena di laptop 1366x768 pemutar setinggi 504px sudah
+ * memenuhi layar setelah header, judul, dan jarak atas ikut dihitung.
+ *
+ * Rasio 16/9 dipakai untuk menerjemahkan batas TINGGI jadi batas
+ * LEBAR — `aspect-ratio` menghitung tinggi dari lebar, jadi
+ * membatasi tinggi langsung akan mematahkan rasionya.
+ *
  * Batas dan pemusatannya di sini, bukan di `LivePlayer`: `.live__layar`
  * selalu mengikuti lebar induknya, jadi yang menentukan lebarnya
  * adalah halaman yang memakai komponen itu. Dipasang pada KOMPONENNYA
@@ -969,7 +985,7 @@ const jalan = [
  * dengan judul bagian lain di halaman ini. */
 @media (min-width: 48rem) {
   .live-bagian {
-    max-width: 56rem;
+    max-width: min(56rem, calc(55vh * 16 / 9));
     margin-inline: auto;
   }
 }

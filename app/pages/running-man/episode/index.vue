@@ -749,12 +749,40 @@ function hapusLabelEpisode() {
     opacity: 1;
     pointer-events: auto;
   }
+
+  /* Isi kanan kartu memudar saat tombolnya naik ke atas.
+   *
+   * Panel aksi selebar 3.25rem dan menempel di tepi kanan, dan di situlah
+   * `.episode__samping` berada — ukuran berkas dan lencana kualitas. Tanpa
+   * aturan ini tombolnya menimpa keduanya, dan yang terbaca bukan "ada
+   * tombol label" melainkan "lencana kualitasnya rusak".
+   *
+   * Di layar sentuh masalah ini tidak ada sejak awal: barisnya digeser
+   * `--geser`, jadi panelnya tersingkap di samping kartu dan tidak
+   * menutupi apa pun. Hover tidak menggeser apa-apa, jadi di sini yang
+   * perlu disesuaikan justru isi kartunya — memudar, bukan bergeser,
+   * karena geseran sejauh 52px di tujuh puluh baris yang dilewati kursor
+   * terasa jauh lebih berisik daripada satu kolom yang memudar. */
+  .episode__sel:hover .episode__samping {
+    opacity: 0;
+  }
 }
 
 .episode__aksi:focus-visible {
   z-index: 2;
   outline: 2px solid var(--garis-aktif);
   outline-offset: -2px;
+}
+
+/* Sama seperti hover: saat tombolnya difokus lewat Tab, ia juga naik ke
+ * atas kartu, jadi isi kanannya harus ikut memudar.
+ *
+ * `~` dipakai karena tombol dan kartu itu saudara di dalam `<li>`. Selector
+ * itu sudah dipakai di file ini untuk tetesan navbar, jadi tidak perlu
+ * `:has()` — yang belum pernah dipakai di proyek ini dan akan menjadi pola
+ * baru untuk satu kasus. */
+.episode__aksi:focus-visible ~ .episode__butir .episode__samping {
+  opacity: 0;
 }
 
 /* Di layar lebar daftar jadi DUA KOLOM.
@@ -1084,6 +1112,10 @@ function hapusLabelEpisode() {
 
   font-size: 0.6875rem;
   color: var(--teks-sekunder);
+
+  /* Memudar saat tombol label muncul di atasnya — lihat catatan di
+   * `.episode__sel:hover .episode__aksi`. */
+  transition: opacity var(--transisi);
 }
 
 /* Ukuran berkas.

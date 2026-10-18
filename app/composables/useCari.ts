@@ -115,12 +115,24 @@ let episodeGagalPada = 0
  *  Daftar episode tidak punya judul per episode — isinya nomor, label
  *  subtitle, dan kualitas. Kueri seperti `jihyo` atau `pengaturan` tidak
  *  akan pernah menemukan apa pun di sana, jadi meminta daftarnya hanya
- *  menambah satu permintaan yang hasilnya kosong. */
+ *  menambah satu permintaan yang hasilnya kosong.
+ *
+ *  `에피소드` ikut di sini karena itu kata yang dipakai proyek sendiri
+ *  sebagai judulnya: `cari.episode` di locale `ko` bernilai
+ *  `에피소드 {nomor}`, dan `useCariHalaman.ts` sudah memakainya sebagai
+ *  alias halaman episode. Tanpa baris ini, orang Korea yang mengetik
+ *  `에피소드` hanya melihat hasil halaman — daftar episode-nya sendiri
+ *  tidak pernah diambil, karena gerbang ini tidak mengenali kata itu.
+ *
+ *  Sudah diuji: kalau daftarnya ada, `에피소드` cocok dengan skor 998
+ *  dan `에피소드 5` dengan 1200. Yang hilang cuma jalurnya — daftar
+ *  episode yang tidak pernah diminta sama sekali. */
 function perluEpisode(kueri: string): boolean {
   return (
     /[0-9]/.test(kueri) ||
     /\bep(?:isode)?\b/i.test(kueri) ||
-    /[회화]/.test(kueri)
+    /[회화]/.test(kueri) ||
+    kueri.includes('에피소드')
   )
 }
 

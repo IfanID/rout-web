@@ -554,21 +554,49 @@ function kePemutar(satu: Episode | null): string {
   border-color: var(--garis-halus);
 }
 
-/* Player dikunci lebarnya di layar lebar.
+/* Player dikunci lebarnya di layar lebar, dan batasnya mengikuti
+ * TINGGI layar, bukan cuma lebar.
  *
- * Tanpa ini ia mengikuti `--lebar-konten` (72rem = 1152px), dan rasio
- * 16/9 menjadikannya setinggi 648px — setengah tinggi monitor untuk satu
- * video, dengan sisa halaman kosong di bawahnya.
+ * Tanpa batas sama sekali ia mengikuti `--lebar-konten` (72rem =
+ * 1152px), dan rasio 16/9 menjadikannya setinggi 648px — setengah
+ * tinggi monitor untuk satu video.
  *
- * 56rem (896px) memberi tinggi 504px, dan audio atau judul di bawahnya
- * masih terlihat tanpa harus menggulir. Dipusatkan, bukan disejajarkan
- * ke kiri, supaya kartu di bawahnya tetap satu blok di tengah halaman.
+ * Batas lebar saja tidak cukup, dan itu yang terasa di laptop.
+ * `56rem` memberi tinggi 504px, padahal di atas pemutar sudah ada
+ * header sticky, jarak atas, tautan kembali, dan judul — sekitar
+ * 182px. Di laptop 1366x768 yang viewport-nya tinggal sekitar 678px,
+ * 182 + 504 = 686px: pemutarnya sendiri sudah memenuhi layar, dan
+ * kartu info di bawahnya tidak pernah terlihat tanpa menggulir.
+ * Di monitor 1080px hal yang sama terasa wajar, jadi masalahnya
+ * bukan ukuran pemutarnya — melainkan tidak adanya hubungan antara
+ * ukurannya dan tinggi layar.
+ *
+ * Karena itu batasnya `min()`: 56rem tetap jadi batas atas supaya di
+ * monitor besar tidak ikut melar, dan `55vh` yang menentukan di layar
+ * pendek. Rasio 16/9 dipakai untuk menerjemahkan batas TINGGI menjadi
+ * batas LEBAR — `aspect-ratio` menghitung tinggi dari lebar, jadi
+ * membatasi tinggi langsung akan mematahkan rasionya. Lebar dikali
+ * 16/9, tinggi ikut sendiri.
+ *
+ * Hasilnya: tinggi pemutar tidak pernah lebih dari 55% layar.
+ *   678px viewport -> 373px   (dari 504px)
+ *   810px viewport -> 446px
+ *   980px viewport -> 504px, karena 56rem yang menang
+ *
+ * `.streaming__info` memakai batas yang sama persis supaya tetap
+ * segaris dengan pemutar di atasnya — bukan karena kartu itu juga
+ * 16/9, tapi karena keduanya satu blok.
+ *
+ * Rumus ini dipakai TIGA player di proyek ini: yang di sini, live di
+ * `running-man/index.vue`, dan clip di `running-man/preview/[id].vue`.
+ * Kalau salah satunya diubah, ketiganya harus ikut — kalau tidak,
+ * tinggi pemutar melompat saat orang berpindah halaman.
  *
  * `48rem` adalah breakpoint yang sudah dipakai proyek ini. */
 @media (min-width: 48rem) {
   .streaming__layar,
   .streaming__info {
-    max-width: 56rem;
+    max-width: min(56rem, calc(55vh * 16 / 9));
     margin-inline: auto;
   }
 }
