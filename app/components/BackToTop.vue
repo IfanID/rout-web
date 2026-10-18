@@ -118,8 +118,35 @@ const dalam = computed(() => Boolean(props.wadah))
 /* ==========================================================================
    Mengambang di pojok kanan bawah halaman.
 
-   Angkanya diambil dari komponen yang sudah mengambang di atas navbar:
-   `bottom: calc(72px + 0.25rem)` di `.cari__petunjuk` pada `search.vue`.
+   --- Jarak sama di kanan dan bawah ---
+
+   Dua sisinya harus sama, dan dulu tidak sama:
+
+     ke tepi kanan layar   1rem                 = 16px
+     ke navbar dari bawah  72px + 0.25rem - 72px =  4px
+
+   Beda empat kali, dan yang membuat angka 4px itu muncul adalah
+   `0.25rem` yang disalin dari `.cari__petunjuk` pada `search.vue`. Di sana
+   memang 4px, karena petunjuk itu melayang di pojok kiri atas dengan
+   bentuk mendatar — sedangkan ini bundar di pojok, dan selisih 12px
+   langsung terbaca sebagai tidak rata.
+
+   Sekarang keduanya 1rem. `env(safe-area-inset-bottom)` ikut karena
+   navbar punya ruang gesture bar di bawahnya, dan tanpa itu tombolnya
+   akan menimpa ruang itu di perangkat yang punya lekukan.
+
+   --- Warna ---
+
+   `--latar-naik-3` (#1a1a1a) di atas latar halaman (#000000) beda 26 dari
+   255, jadi tombolnya larut ke halaman. `box-shadow` tidak menolong: satu-
+  -satunya bayang yang ada adalah hitam di atas hitam.
+
+   Bentuknya diambil dari `.tombol--utama` di main.css — cyan dengan teks
+   gelap `--teks-aksen-tekan`, kontras 9,5:1. Kelas itu tidak dipakai
+   utuh karena membawa `padding` dan `border-radius` miliknya sendiri, yang
+   akan bertabrakan dengan bentuk bundar dan ukuran 2.75rem di bawah. Yang
+   diambil hanya warnanya, dari token yang sama.
+
    72px itu tinggi navbar bawah, dan tinggi itu sama di semua lebar — jadi
    tidak ada breakpoint yang perlu ditambah di sini.
    ========================================================================== */
@@ -127,7 +154,7 @@ const dalam = computed(() => Boolean(props.wadah))
 .atas {
   position: fixed;
   right: 1rem;
-  bottom: calc(72px + 0.25rem);
+  bottom: calc(72px + env(safe-area-inset-bottom) + 1rem);
   z-index: 35;
 
   display: flex;
@@ -139,19 +166,26 @@ const dalam = computed(() => Boolean(props.wadah))
   width: 2.75rem;
   height: 2.75rem;
 
-  background: var(--latar-naik-3);
-  border: 1px solid var(--garis-sedang);
+  background: var(--aksen-utama);
+  /* Transparan, bukan `0`: seperti di `.tombol`, supaya ukuran kotaknya
+     tidak berubah saat hover. */
+  border: 1px solid transparent;
   border-radius: 50%;
-  box-shadow: var(--bayang-panel);
 
-  color: var(--teks-sekunder);
+  /* Tanpa bayang. Satu-satunya bayang yang ada di main.css adalah hitam,
+     dan bayang hitam di atas latar hitam tidak terlihat — di tombol
+     berwarna seperti ini yang memisahkan tombol dari halaman justru
+     warnanya sendiri. */
+  color: var(--teks-aksen-tekan);
   cursor: pointer;
-  transition: color var(--transisi), border-color var(--transisi);
+  transition: background var(--transisi), color var(--transisi);
 }
 
+/* Hover mengikuti `.tombol--utama:hover`: cyan satu tingkat lebih terang.
+   Yang berubah hanya warnanya — tidak ada `border-color` seperti
+   sebelumnya, karena bordernya sekarang transparan. */
 .atas:hover {
-  color: var(--teks-utama);
-  border-color: var(--garis-aktif);
+  background: var(--cyan-400);
 }
 
 /* Cincin fokus wajib, bukan opsional: tombol ini muncul dan hilang
